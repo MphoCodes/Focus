@@ -94,6 +94,7 @@ private val LocalTextSizeMultiplier = androidx.compose.runtime.compositionLocalO
 fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pendingPromptApp = uiState.pendingPromptApp
+    val quotaBlock = uiState.quotaBlock
 
     val currentBackground = if (uiState.settings.blackThemeEnabled) Color(0xFF000000) else Color(0xFF151515)
     val currentTextMultiplier = when (uiState.settings.textSize) {
@@ -173,6 +174,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             "Favourite apps" to LauncherScreen.Favorites,
                             "Hidden apps" to LauncherScreen.Hidden,
                             "App disguises" to LauncherScreen.Disguises,
+                            "App time quotas" to LauncherScreen.Quotas,
                             "Focus mode" to LauncherScreen.FocusMode,
                             "Set as default" to LauncherScreen.DefaultHome,
                             "Stats" to LauncherScreen.Stats
@@ -200,6 +202,14 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
         ) {
             Surface(color = LocalFocusBackground.current, modifier = Modifier.fillMaxSize()) {
                 when {
+                    quotaBlock != null -> QuotaBlockScreen(
+                        uiState = uiState,
+                        quotaBlock = quotaBlock,
+                        onOpenUsageAccess = viewModel::openUsageAccessSettings,
+                        onDismiss = viewModel::dismissQuotaBlock,
+                        onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                    )
+
                     pendingPromptApp != null -> IntentPromptScreen(
                         uiState = uiState,
                         app = pendingPromptApp,
@@ -273,6 +283,15 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             uiState = uiState,
                             onSearchChange = viewModel::updateSearch,
                             onDisguiseChange = viewModel::setAppDisguise,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.Quotas -> AppQuotaScreen(
+                            uiState = uiState,
+                            onSearchChange = viewModel::updateSearch,
+                            onCycleQuota = viewModel::cycleAppDailyQuota,
+                            onOpenUsageAccess = viewModel::openUsageAccessSettings,
                             onNavigate = viewModel::navigateTo,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
@@ -562,6 +581,11 @@ private fun SettingsScreen(
                     value = stringResource(R.string.settings_focus_mode_apps_count, uiState.settings.intentPromptAppIds.size),
                     onClick = { onNavigate(LauncherScreen.FocusMode) }
                 )
+                SettingRow(
+                    label = stringResource(R.string.settings_app_time_quotas),
+                    value = stringResource(R.string.settings_focus_mode_apps_count, uiState.settings.appDailyQuotaMinutes.size),
+                    onClick = { onNavigate(LauncherScreen.Quotas) }
+                )
                 SettingRow(stringResource(R.string.settings_intent_prompts), onClick = { onNavigate(LauncherScreen.FocusMode) })
                 SettingRow(
                     label = stringResource(R.string.settings_pause_duration),
@@ -714,6 +738,62 @@ private fun AppDisguiseScreen(
                 if (apps.isEmpty()) {
                     item { MutedEmptyText(stringResource(R.string.home_no_apps_found)) }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppQuotaScreen(
+    uiState: LauncherUiState,
+    onSearchChange: (String) -> Unit,
+    onCycleQuota: (InstalledApp) -> Unit,
+    onOpenUsageAccess: () -> Unit,
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
+) {
+    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.Quotas, showBack = true, onNavigate = onNavigate, onMenuClick = onMenuClick) {
+        val apps = selectorApps(uiState, includeHidden = true)
+        LazyColumn(Modifier.fillMaxSize()) {
+            item {
+                Text(
+                    text = stringResource(R.string.quotas_title),
+                    color = LocalFocusPrimary.current,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.quotas_desc),
+                    color = FocusMuted,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp
+                )
+                Spacer(Modifier.height(24.dp))
+                SettingRow(
+                    label = stringResource(R.string.quotas_usage_access),
+                    value = stringResource(if (uiState.usageAccessGranted) R.string.quotas_usage_access_granted else R.string.quotas_usage_access_required),
+                    onClick = onOpenUsageAccess
+                )
+                Spacer(Modifier.height(18.dp))
+                SearchInput(
+                    value = uiState.searchQuery,
+                    placeholder = stringResource(R.string.selector_search_placeholder),
+                    onValueChange = onSearchChange
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+
+            items(apps, key = { it.id }) { app ->
+                QuotaRow(
+                    label = appDisplayLabel(app, uiState.settings),
+                    minutes = uiState.settings.appDailyQuotaMinutes[app.id] ?: 0,
+                    onClick = { onCycleQuota(app) }
+                )
+            }
+
+            if (apps.isEmpty()) {
+                item { MutedEmptyText(stringResource(R.string.home_no_apps_found)) }
             }
         }
     }
@@ -943,6 +1023,61 @@ private fun IntentPromptScreen(
         )
         Spacer(Modifier.height(10.dp))
         GhostButton(text = stringResource(R.string.intent_prompt_btn_cancel), onClick = onCancel)
+    }
+}
+
+@Composable
+private fun QuotaBlockScreen(
+    uiState: LauncherUiState,
+    quotaBlock: QuotaBlock,
+    onOpenUsageAccess: () -> Unit,
+    onDismiss: () -> Unit,
+    onMenuClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LocalFocusBackground.current)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 20.dp)
+    ) {
+        TopMark(onMenuClick = onMenuClick)
+        Spacer(Modifier.height(42.dp))
+        Eyebrow(stringResource(R.string.quota_block_eyebrow))
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = if (quotaBlock.requiresUsageAccess) {
+                stringResource(R.string.quota_block_usage_title)
+            } else {
+                stringResource(R.string.quota_block_title, appDisplayLabel(quotaBlock.app, uiState.settings))
+            },
+            color = LocalFocusPrimary.current,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            lineHeight = 29.sp
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = if (quotaBlock.requiresUsageAccess) {
+                stringResource(R.string.quota_block_usage_desc, quotaBlock.quotaMinutes)
+            } else {
+                stringResource(
+                    R.string.quota_block_desc,
+                    formatUsageMinutes(quotaBlock.usedMillis),
+                    quotaBlock.quotaMinutes
+                )
+            },
+            color = FocusSecondary,
+            fontSize = 13.sp,
+            lineHeight = 19.sp
+        )
+        Spacer(Modifier.height(36.dp))
+        if (quotaBlock.requiresUsageAccess) {
+            FocusButton(text = stringResource(R.string.quota_block_open_usage_access), onClick = onOpenUsageAccess)
+            Spacer(Modifier.height(10.dp))
+        }
+        GhostButton(text = stringResource(R.string.quota_block_back), onClick = onDismiss)
     }
 }
 
@@ -1297,6 +1432,32 @@ private fun DisguiseRow(app: InstalledApp, value: String, onValueChange: (String
 }
 
 @Composable
+private fun QuotaRow(label: String, minutes: Int, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            color = LocalFocusPrimary.current,
+            fontSize = 15.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = if (minutes <= 0) stringResource(R.string.quotas_off) else stringResource(R.string.quotas_minutes, minutes),
+            color = if (minutes <= 0) FocusMuted else LocalFocusPrimary.current,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 11.sp
+        )
+    }
+}
+
+@Composable
 private fun SettingRow(label: String, value: String? = null, onClick: (() -> Unit)? = null) {
     Row(
         modifier = Modifier
@@ -1524,6 +1685,10 @@ private fun selectorApps(
 
 private fun appDisplayLabel(app: InstalledApp, settings: com.focuslauncher.data.model.LauncherSettings): String {
     return settings.appDisguises[app.id]?.takeIf { it.isNotBlank() } ?: app.label
+}
+
+private fun formatUsageMinutes(usedMillis: Long): Int {
+    return (usedMillis / 60_000L).coerceAtLeast(0L).toInt()
 }
 
 private fun isTimeInSchedule(now: LocalDateTime, start: String, end: String): Boolean {

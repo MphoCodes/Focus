@@ -43,6 +43,7 @@
     <string name="settings_section_focus">FOCUS</string>
     <string name="settings_focus_mode">Focus mode</string>
     <string name="settings_focus_mode_apps_count">%1$d apps</string>
+    <string name="settings_app_time_quotas">App time quotas</string>
     <string name="settings_intent_prompts">Intent prompts</string>
     <string name="settings_pause_duration">Pause duration</string>
     <string name="settings_pause_duration_off">Off</string>
@@ -70,6 +71,22 @@
     <string name="disguises_title">App disguises</string>
     <string name="disguises_desc">Rename attention traps with dull, deliberate labels.</string>
     <string name="disguises_placeholder">Original name</string>
+
+    <!-- App Quotas -->
+    <string name="quotas_title">App time quotas</string>
+    <string name="quotas_desc">Set daily limits for apps that should stop after enough use.</string>
+    <string name="quotas_usage_access">Usage access</string>
+    <string name="quotas_usage_access_granted">Granted</string>
+    <string name="quotas_usage_access_required">Required</string>
+    <string name="quotas_off">Off</string>
+    <string name="quotas_minutes">%1$d min</string>
+    <string name="quota_block_eyebrow">DAILY QUOTA</string>
+    <string name="quota_block_title">%1$s is done for today.</string>
+    <string name="quota_block_desc">Used %1$d of %2$d minutes. Come back tomorrow.</string>
+    <string name="quota_block_usage_title">Usage access is required.</string>
+    <string name="quota_block_usage_desc">Focus needs usage access to enforce this %1$d minute quota.</string>
+    <string name="quota_block_open_usage_access">OPEN USAGE ACCESS</string>
+    <string name="quota_block_back">BACK TO FOCUS</string>
 
     <!-- Focus Mode -->
     <string name="focus_mode_title">Focus mode</string>

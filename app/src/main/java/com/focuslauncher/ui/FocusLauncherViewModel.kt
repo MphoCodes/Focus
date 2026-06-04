@@ -22,6 +22,7 @@ enum class LauncherScreen {
     Favorites,
     Hidden,
     Disguises,
+    Quotas,
     FocusMode,
     DefaultHome,
     Stats
@@ -35,7 +36,16 @@ data class LauncherUiState(
     val searchQuery: String = "",
     val settings: LauncherSettings = LauncherSettings(),
     val pendingPromptApp: InstalledApp? = null,
+    val quotaBlock: QuotaBlock? = null,
+    val usageAccessGranted: Boolean = false,
     val loading: Boolean = true
+)
+
+data class QuotaBlock(
+    val app: InstalledApp,
+    val quotaMinutes: Int,
+    val usedMillis: Long,
+    val requiresUsageAccess: Boolean
 )
 
 class FocusLauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -45,6 +55,8 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
     private val searchQuery = MutableStateFlow("")
     private val screen = MutableStateFlow(LauncherScreen.Home)
     private val pendingPromptApp = MutableStateFlow<InstalledApp?>(null)
+    private val quotaBlock = MutableStateFlow<QuotaBlock?>(null)
+    private val usageAccessGranted = MutableStateFlow(false)
     private val loading = MutableStateFlow(true)
 
     private val baseUiState = combine(
@@ -105,8 +117,12 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         )
     }
 
-    val uiState = combine(baseUiState, loading) { state, isLoading ->
-        state.copy(loading = isLoading)
+    val uiState = combine(baseUiState, loading, quotaBlock, usageAccessGranted) { state, isLoading, currentQuotaBlock, hasUsageAccess ->
+        state.copy(
+            loading = isLoading,
+            quotaBlock = currentQuotaBlock,
+            usageAccessGranted = hasUsageAccess
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -115,6 +131,7 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
 
     init {
         refreshApps()
+        refreshUsageAccess()
     }
 
     fun refreshApps() {
@@ -128,6 +145,7 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
     fun navigateTo(target: LauncherScreen) {
         screen.value = target
         searchQuery.value = ""
+        refreshUsageAccess()
     }
 
     fun updateSearch(query: String) {
@@ -235,27 +253,44 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch { settingsRepository.setAppDisguise(app.id, disguise) }
     }
 
-    private fun launchApp(app: InstalledApp) {
-        viewModelScope.launch {
-            if (appsRepository.openApp(app)) {
-                settingsRepository.incrementAppLaunchCount(app.packageName)
-            }
+    fun cycleAppDailyQuota(app: InstalledApp) {
+        val current = uiState.value.settings.appDailyQuotaMinutes[app.id] ?: 0
+        val next = when (current) {
+            0 -> 15
+            15 -> 30
+            30 -> 60
+            60 -> 120
+            else -> 0
+        }
+        viewModelScope.launch { settingsRepository.setAppDailyQuotaMinutes(app.id, next) }
+    }
+
+    private suspend fun launchApp(app: InstalledApp) {
+        if (appsRepository.openApp(app)) {
+            settingsRepository.incrementAppLaunchCount(app.packageName)
         }
     }
 
     fun requestOpenApp(app: InstalledApp) {
-        if (app.id in uiState.value.settings.intentPromptAppIds) {
-            pendingPromptApp.value = app
-        } else {
-            launchApp(app)
+        viewModelScope.launch {
+            if (blockIfQuotaExceeded(app)) return@launch
+
+            if (app.id in uiState.value.settings.intentPromptAppIds) {
+                pendingPromptApp.value = app
+            } else {
+                launchApp(app)
+            }
         }
     }
 
     fun confirmPromptOpen(intent: String) {
         val app = pendingPromptApp.value ?: return
         pendingPromptApp.value = null
-        viewModelScope.launch { settingsRepository.addIntentLog(intent) }
-        launchApp(app)
+        viewModelScope.launch {
+            if (blockIfQuotaExceeded(app)) return@launch
+            settingsRepository.addIntentLog(intent)
+            launchApp(app)
+        }
     }
 
     fun cancelPromptOpen() {
@@ -268,6 +303,50 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
 
     fun openDefaultHomeSettings() {
         appsRepository.openDefaultHomeSettings()
+    }
+
+    fun openUsageAccessSettings() {
+        appsRepository.openUsageAccessSettings()
+    }
+
+    fun dismissQuotaBlock() {
+        quotaBlock.value = null
+    }
+
+    fun refreshUsageAccess() {
+        usageAccessGranted.value = appsRepository.hasUsageAccess()
+    }
+
+    private suspend fun blockIfQuotaExceeded(app: InstalledApp): Boolean {
+        val quotaMinutes = uiState.value.settings.appDailyQuotaMinutes[app.id] ?: return false
+        if (quotaMinutes <= 0) return false
+
+        val hasUsageAccess = appsRepository.hasUsageAccess()
+        usageAccessGranted.value = hasUsageAccess
+        if (!hasUsageAccess) {
+            quotaBlock.value = QuotaBlock(
+                app = app,
+                quotaMinutes = quotaMinutes,
+                usedMillis = 0L,
+                requiresUsageAccess = true
+            )
+            return true
+        }
+
+        val usedMillis = withContext(Dispatchers.IO) {
+            appsRepository.getTodayUsageMillis(app.packageName)
+        }
+        if (usedMillis >= quotaMinutes * 60_000L) {
+            quotaBlock.value = QuotaBlock(
+                app = app,
+                quotaMinutes = quotaMinutes,
+                usedMillis = usedMillis,
+                requiresUsageAccess = false
+            )
+            return true
+        }
+
+        return false
     }
 }
 

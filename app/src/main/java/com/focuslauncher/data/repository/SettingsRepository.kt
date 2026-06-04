@@ -33,6 +33,7 @@ class SettingsRepository(context: Context) {
             appOrder = preferences[Keys.APP_ORDER] ?: "Alphabetical",
             themeAccent = preferences[Keys.THEME_ACCENT] ?: "E-Ink Grey",
             appDisguises = AppDisguiseSerializer.decode(preferences[Keys.APP_DISGUISES].orEmpty()),
+            appDailyQuotaMinutes = LaunchCountSerializer.decode(preferences[Keys.APP_DAILY_QUOTA_MINUTES].orEmpty()),
             appLaunchCounts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()),
             appDeflectionCounts = LaunchCountSerializer.decode(preferences[Keys.APP_DEFLECTION_COUNTS].orEmpty()),
             intentLogs = preferences[Keys.INTENT_LOGS]?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList()
@@ -108,6 +109,18 @@ class SettingsRepository(context: Context) {
         }
     }
 
+    suspend fun setAppDailyQuotaMinutes(appId: String, minutes: Int) {
+        dataStore.edit { preferences ->
+            val quotas = LaunchCountSerializer.decode(preferences[Keys.APP_DAILY_QUOTA_MINUTES].orEmpty()).toMutableMap()
+            if (minutes <= 0) {
+                quotas.remove(appId)
+            } else {
+                quotas[appId] = minutes
+            }
+            preferences[Keys.APP_DAILY_QUOTA_MINUTES] = LaunchCountSerializer.encode(quotas)
+        }
+    }
+
     suspend fun incrementAppLaunchCount(packageName: String) {
         dataStore.edit { preferences ->
             val counts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()).toMutableMap()
@@ -148,6 +161,7 @@ class SettingsRepository(context: Context) {
         val APP_ORDER = stringPreferencesKey("app_order")
         val THEME_ACCENT = stringPreferencesKey("theme_accent")
         val APP_DISGUISES = stringSetPreferencesKey("app_disguises")
+        val APP_DAILY_QUOTA_MINUTES = stringSetPreferencesKey("app_daily_quota_minutes")
         val APP_LAUNCH_COUNTS = stringSetPreferencesKey("app_launch_counts")
         val APP_DEFLECTION_COUNTS = stringSetPreferencesKey("app_deflection_counts")
         val INTENT_LOGS = stringPreferencesKey("intent_logs")
