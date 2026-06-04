@@ -62,6 +62,7 @@
     <string name="settings_text_size_val">Standard</string>
 
     <string name="settings_section_about">ABOUT</string>
+    <string name="settings_privacy">Privacy &amp; data</string>
     <string name="settings_about_footer">Designed for digital stoicism.</string>
 
     <!-- App Selector -->
@@ -125,6 +126,18 @@
     <string name="notifications_pending_empty">No pending notifications.</string>
     <string name="notifications_essential_title">Essential notifications</string>
     <string name="notifications_essential_desc">Choose apps that bypass notification batching.</string>
+
+    <!-- Privacy -->
+    <string name="privacy_title">Privacy &amp; data</string>
+    <string name="privacy_summary">Focus Launcher is designed to keep attention controls on this device. It does not include ads, analytics, cloud sync, or third-party tracking SDKs.</string>
+    <string name="privacy_section_local_data">LOCAL DATA</string>
+    <string name="privacy_local_data_body">Settings such as favorite apps, hidden apps, app disguises, focus profiles, quotas, notification batching counts, launch counts, deflection counts, and intent logs are stored locally with Android DataStore.</string>
+    <string name="privacy_section_permissions">SENSITIVE ACCESS</string>
+    <string name="privacy_permissions_body">Usage access is used only to calculate daily app quota time. Notification listener access is used only to batch non-essential notifications. Wi-Fi SSID access is used only for optional profile switching. Installed app visibility is used to show launcher app lists.</string>
+    <string name="privacy_section_no_sharing">NO SHARING</string>
+    <string name="privacy_no_sharing_body">Focus Launcher does not sell, share, upload, or transmit personal data. Sensitive access is used only for the user-facing focus features shown in Settings.</string>
+    <string name="privacy_section_deletion">DELETION</string>
+    <string name="privacy_deletion_body">Users can clear feature data by disabling or editing the related settings, removing app selections, or uninstalling the app, which removes locally stored app data.</string>
 
     <!-- Focus Mode -->
     <string name="focus_mode_title">Focus mode</string>

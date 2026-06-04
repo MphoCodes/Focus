@@ -1,8 +1,33 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use(::load)
+    }
+}
+
+fun releaseProperty(name: String): String? {
+    return providers.environmentVariable(name).orNull
+        ?: localProperties.getProperty(name)
+}
+
+val releaseStoreFile = releaseProperty("FOCUS_RELEASE_STORE_FILE")
+val releaseStorePassword = releaseProperty("FOCUS_RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = releaseProperty("FOCUS_RELEASE_KEY_ALIAS")
+val releaseKeyPassword = releaseProperty("FOCUS_RELEASE_KEY_PASSWORD")
+val hasReleaseSigning = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+).all { !it.isNullOrBlank() }
 
 android {
     namespace = "com.focuslauncher"
@@ -12,12 +37,32 @@ android {
         applicationId = "com.focuslauncher"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.1.1"
     }
 
     buildFeatures {
         compose = true
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+            isMinifyEnabled = false
+        }
     }
 
     compileOptions {

@@ -58,6 +58,11 @@ The application conforms to standard Android architecture guidelines:
    ./gradlew lint
    ```
 
+4. Build the Google Play release bundle:
+   ```bash
+   ./gradlew bundleRelease
+   ```
+
 ---
 
 ## Releasing Strategy
@@ -76,7 +81,13 @@ To prepare an Android App Bundle (AAB) for deployment to the Google Play Store:
    ```bash
    keytool -genkey -v -keystore release-key.keystore -alias focus-key -keyalg RSA -keysize 2048 -validity 10000
    ```
-2. Configure project variables or environment values in your local `local.properties` or system variables (`SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD`, etc.).
+2. Configure project variables or environment values in your local `local.properties` or system variables:
+   ```properties
+   FOCUS_RELEASE_STORE_FILE=/absolute/path/to/upload-keystore.jks
+   FOCUS_RELEASE_STORE_PASSWORD=...
+   FOCUS_RELEASE_KEY_ALIAS=focus-key
+   FOCUS_RELEASE_KEY_PASSWORD=...
+   ```
 3. Build the release App Bundle:
    ```bash
    ./gradlew bundleRelease
@@ -87,6 +98,8 @@ To prepare an Android App Bundle (AAB) for deployment to the Google Play Store:
 Our release workflow is fully automated through **GitHub Actions**:
 * **On Pull Request / Push to `main`**: Runs code compilation checks and Gradle verification.
 * **On Pushing a Tag (`v*`)**:
-  * Compiles the production-ready Release APK.
+  * Compiles the production-ready Android App Bundle.
   * Automatically creates a published **GitHub Release**.
-  * Uploads the generated unsigned release APK as an asset for signing, testing, or distribution preparation.
+  * Uploads the generated release AAB as an asset for Google Play distribution.
+
+See [docs/PLAY_STORE_RELEASE_CHECKLIST.md](docs/PLAY_STORE_RELEASE_CHECKLIST.md) and [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md) before submitting to Google Play.

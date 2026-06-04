@@ -32,6 +32,7 @@ enum class LauncherScreen {
     WeekendProfileApps,
     Notifications,
     EssentialNotifications,
+    Privacy,
     FocusMode,
     DefaultHome,
     Stats

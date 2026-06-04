@@ -1,6 +1,14 @@
 @file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 package com.focuslauncher.ui
 
+import android.Manifest
+import android.app.SearchManager
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -66,9 +74,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.platform.LocalContext
-import android.content.Intent
-import android.net.Uri
-import android.app.SearchManager
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.focuslauncher.R
@@ -95,6 +101,25 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pendingPromptApp = uiState.pendingPromptApp
     val quotaBlock = uiState.quotaBlock
+    val context = LocalContext.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            viewModel.toggleNotificationBatchingEnabled()
+        }
+    }
+    val onToggleNotificationBatching = {
+        val shouldEnable = !uiState.settings.notificationBatchingEnabled
+        val needsNotificationPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+
+        if (shouldEnable && needsNotificationPermission) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            viewModel.toggleNotificationBatchingEnabled()
+        }
+    }
 
     val currentBackground = if (uiState.settings.blackThemeEnabled) Color(0xFF000000) else Color(0xFF151515)
     val currentTextMultiplier = when (uiState.settings.textSize) {
@@ -177,6 +202,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             "App time quotas" to LauncherScreen.Quotas,
                             "Context profiles" to LauncherScreen.ContextProfiles,
                             "Notifications" to LauncherScreen.Notifications,
+                            "Privacy" to LauncherScreen.Privacy,
                             "Focus mode" to LauncherScreen.FocusMode,
                             "Set as default" to LauncherScreen.DefaultHome,
                             "Stats" to LauncherScreen.Stats
@@ -343,7 +369,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
 
                         LauncherScreen.Notifications -> NotificationBatchingScreen(
                             uiState = uiState,
-                            onToggleEnabled = viewModel::toggleNotificationBatchingEnabled,
+                            onToggleEnabled = onToggleNotificationBatching,
                             onOpenListenerSettings = viewModel::openNotificationListenerSettings,
                             onNavigate = viewModel::navigateTo,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
@@ -356,6 +382,11 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             selectedIds = uiState.settings.essentialNotificationAppIds,
                             onSearchChange = viewModel::updateSearch,
                             onToggleApp = viewModel::toggleEssentialNotificationApp,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.Privacy -> PrivacyScreen(
                             onNavigate = viewModel::navigateTo,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
@@ -713,6 +744,7 @@ private fun SettingsScreen(
 
                 SettingsSection(stringResource(R.string.settings_section_about))
                 SettingRow(stringResource(R.string.app_name), value = "v${appVersionText()}")
+                SettingRow(stringResource(R.string.settings_privacy), onClick = { onNavigate(LauncherScreen.Privacy) })
                 Spacer(Modifier.height(32.dp))
                 Text(
                     text = stringResource(R.string.settings_about_footer),
@@ -1058,6 +1090,51 @@ private fun NotificationBatchingScreen(
                     }
                 }
                 Spacer(Modifier.height(32.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PrivacyScreen(
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
+) {
+    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.Privacy, showBack = true, onNavigate = onNavigate, onMenuClick = onMenuClick) {
+        LazyColumn(Modifier.fillMaxSize()) {
+            item {
+                Text(
+                    text = stringResource(R.string.privacy_title),
+                    color = LocalFocusPrimary.current,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.privacy_summary),
+                    color = FocusSecondary,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp
+                )
+                Spacer(Modifier.height(24.dp))
+
+                PrivacyTextBlock(
+                    heading = stringResource(R.string.privacy_section_local_data),
+                    body = stringResource(R.string.privacy_local_data_body)
+                )
+                PrivacyTextBlock(
+                    heading = stringResource(R.string.privacy_section_permissions),
+                    body = stringResource(R.string.privacy_permissions_body)
+                )
+                PrivacyTextBlock(
+                    heading = stringResource(R.string.privacy_section_no_sharing),
+                    body = stringResource(R.string.privacy_no_sharing_body)
+                )
+                PrivacyTextBlock(
+                    heading = stringResource(R.string.privacy_section_deletion),
+                    body = stringResource(R.string.privacy_deletion_body)
+                )
+                Spacer(Modifier.height(28.dp))
             }
         }
     }
@@ -1766,6 +1843,19 @@ private fun ProfileWifiField(label: String, value: String, onValueChange: (Strin
 }
 
 @Composable
+private fun PrivacyTextBlock(heading: String, body: String) {
+    SettingsSection(heading)
+    Text(
+        text = body,
+        color = FocusSecondary,
+        fontSize = 12.sp,
+        lineHeight = 18.sp,
+        modifier = Modifier.fillMaxWidth()
+    )
+    Spacer(Modifier.height(22.dp))
+}
+
+@Composable
 private fun SettingRow(label: String, value: String? = null, onClick: (() -> Unit)? = null) {
     Row(
         modifier = Modifier
@@ -2030,7 +2120,7 @@ private fun isTimeInSchedule(now: LocalDateTime, start: String, end: String): Bo
     }
 }
 
-private fun appVersionText(): String = "1.0.0"
+private fun appVersionText(): String = "1.1.1"
 
 @Composable
 private fun StatsScreen(
