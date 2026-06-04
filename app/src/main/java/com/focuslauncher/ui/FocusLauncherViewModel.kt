@@ -213,9 +213,10 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    fun confirmPromptOpen() {
+    fun confirmPromptOpen(intent: String) {
         val app = pendingPromptApp.value ?: return
         pendingPromptApp.value = null
+        viewModelScope.launch { settingsRepository.addIntentLog(intent) }
         launchApp(app)
     }
 

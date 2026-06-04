@@ -1,5 +1,13 @@
 package com.focuslauncher.ui
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -660,7 +668,7 @@ private fun DefaultHomeScreen(
 private fun IntentPromptScreen(
     uiState: LauncherUiState,
     app: InstalledApp,
-    onContinue: () -> Unit,
+    onContinue: (String) -> Unit,
     onCancel: () -> Unit,
     onMenuClick: () -> Unit
 ) {
@@ -675,6 +683,18 @@ private fun IntentPromptScreen(
         }
     }
 
+    val infiniteTransition = rememberInfiniteTransition()
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    var typedIntent by remember { mutableStateOf("") }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -684,21 +704,35 @@ private fun IntentPromptScreen(
             .padding(horizontal = 24.dp, vertical = 20.dp)
     ) {
         TopMark(onMenuClick = onMenuClick)
-        Spacer(Modifier.height(72.dp))
-        Text(
-            text = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm")),
-            color = Color(0xFF111111),
-            fontSize = 62.sp,
-            fontWeight = FontWeight.Light
-        )
         Spacer(Modifier.height(32.dp))
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(1.dp)
-                .background(FocusSecondary)
-        )
-        Spacer(Modifier.height(26.dp))
+                .height(140.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .scale(scale)
+                    .background(FocusPrimary.copy(alpha = 0.15f), CircleShape)
+            )
+            Box(
+                modifier = Modifier
+                    .size(75.dp)
+                    .scale(scale)
+                    .background(FocusPrimary.copy(alpha = 0.3f), CircleShape)
+            )
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .scale(scale)
+                    .background(FocusPrimary, CircleShape)
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
         Text(
             text = stringResource(R.string.intent_prompt_title, app.label),
             color = FocusPrimary,
@@ -708,24 +742,46 @@ private fun IntentPromptScreen(
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            text = stringResource(R.string.intent_prompt_subtitle),
+            text = "Type your intent to unlock.",
             color = FocusMuted,
             fontSize = 12.sp
         )
         Spacer(Modifier.height(22.dp))
-        listOf(
-            stringResource(R.string.intent_prompt_reason_message),
-            stringResource(R.string.intent_prompt_reason_post),
-            stringResource(R.string.intent_prompt_reason_work),
-            stringResource(R.string.intent_prompt_reason_habit)
-        ).forEach { reason ->
-            StaticReasonRow(reason)
-        }
+
+        BasicTextField(
+            value = typedIntent,
+            onValueChange = { typedIntent = it },
+            textStyle = TextStyle(color = FocusPrimary, fontSize = 16.sp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, FocusSecondary)
+                .padding(16.dp),
+            decorationBox = { innerTextField ->
+                if (typedIntent.isEmpty()) {
+                    Text("I am opening this because...", color = FocusSecondary, fontSize = 16.sp)
+                }
+                innerTextField()
+            }
+        )
+
         Spacer(Modifier.height(18.dp))
+
+        val logs = uiState.settings.intentLogs.take(3)
+        if (logs.isNotEmpty()) {
+            Text("Recent intents:", color = FocusSecondary, fontSize = 12.sp)
+            Spacer(Modifier.height(8.dp))
+            logs.forEach { log ->
+                StaticReasonRow(log)
+            }
+            Spacer(Modifier.weight(1f))
+        } else {
+            Spacer(Modifier.weight(1f))
+        }
+
         FocusButton(
             text = if (remaining > 0) stringResource(R.string.intent_prompt_btn_wait, remaining) else stringResource(R.string.intent_prompt_btn_continue),
-            enabled = remaining <= 0,
-            onClick = onContinue
+            enabled = remaining <= 0 && typedIntent.isNotBlank(),
+            onClick = { onContinue(typedIntent) }
         )
         Spacer(Modifier.height(10.dp))
         GhostButton(text = stringResource(R.string.intent_prompt_btn_cancel), onClick = onCancel)
