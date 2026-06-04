@@ -8,12 +8,15 @@ import com.focuslauncher.data.model.LauncherSettings
 import com.focuslauncher.data.repository.AppsRepository
 import com.focuslauncher.data.repository.SettingsRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.DayOfWeek
+import java.time.LocalDateTime
 
 enum class LauncherScreen {
     Home,
@@ -23,6 +26,10 @@ enum class LauncherScreen {
     Hidden,
     Disguises,
     Quotas,
+    ContextProfiles,
+    WorkProfileApps,
+    HomeProfileApps,
+    WeekendProfileApps,
     FocusMode,
     DefaultHome,
     Stats
@@ -38,6 +45,7 @@ data class LauncherUiState(
     val pendingPromptApp: InstalledApp? = null,
     val quotaBlock: QuotaBlock? = null,
     val usageAccessGranted: Boolean = false,
+    val activeContextProfileId: String = "default",
     val loading: Boolean = true
 )
 
@@ -46,6 +54,11 @@ data class QuotaBlock(
     val quotaMinutes: Int,
     val usedMillis: Long,
     val requiresUsageAccess: Boolean
+)
+
+private data class ContextSignal(
+    val now: LocalDateTime = LocalDateTime.now(),
+    val wifiSsid: String? = null
 )
 
 class FocusLauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -57,6 +70,7 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
     private val pendingPromptApp = MutableStateFlow<InstalledApp?>(null)
     private val quotaBlock = MutableStateFlow<QuotaBlock?>(null)
     private val usageAccessGranted = MutableStateFlow(false)
+    private val contextSignal = MutableStateFlow(ContextSignal())
     private val loading = MutableStateFlow(true)
 
     private val baseUiState = combine(
@@ -117,11 +131,15 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         )
     }
 
-    val uiState = combine(baseUiState, loading, quotaBlock, usageAccessGranted) { state, isLoading, currentQuotaBlock, hasUsageAccess ->
+    val uiState = combine(baseUiState, loading, quotaBlock, usageAccessGranted, contextSignal) { state, isLoading, currentQuotaBlock, hasUsageAccess, signal ->
+        val activeProfileId = resolveActiveContextProfile(state.settings, signal)
         state.copy(
+            visibleApps = applyContextProfile(state.visibleApps, state.settings, activeProfileId),
+            favoriteApps = applyContextProfile(state.favoriteApps, state.settings, activeProfileId),
             loading = isLoading,
             quotaBlock = currentQuotaBlock,
-            usageAccessGranted = hasUsageAccess
+            usageAccessGranted = hasUsageAccess,
+            activeContextProfileId = activeProfileId
         )
     }.stateIn(
         scope = viewModelScope,
@@ -132,6 +150,13 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
     init {
         refreshApps()
         refreshUsageAccess()
+        refreshContextSignal()
+        viewModelScope.launch {
+            while (true) {
+                delay(60_000)
+                refreshContextSignal()
+            }
+        }
     }
 
     fun refreshApps() {
@@ -265,6 +290,48 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch { settingsRepository.setAppDailyQuotaMinutes(app.id, next) }
     }
 
+    fun toggleContextProfilesEnabled() {
+        val current = uiState.value.settings.contextProfilesEnabled
+        viewModelScope.launch { settingsRepository.setContextProfilesEnabled(!current) }
+    }
+
+    fun toggleContextProfilesAutoSwitch() {
+        val current = uiState.value.settings.contextProfilesAutoSwitch
+        viewModelScope.launch { settingsRepository.setContextProfilesAutoSwitch(!current) }
+    }
+
+    fun cycleManualContextProfile() {
+        val next = when (uiState.value.settings.manualContextProfileId) {
+            "default" -> "work"
+            "work" -> "home"
+            "home" -> "weekend"
+            else -> "default"
+        }
+        viewModelScope.launch { settingsRepository.setManualContextProfileId(next) }
+    }
+
+    fun toggleWorkProfileApp(app: InstalledApp) {
+        val current = uiState.value.settings.workProfileAppIds.toMutableSet()
+        if (!current.add(app.id)) current.remove(app.id)
+        viewModelScope.launch { settingsRepository.setWorkProfileAppIds(current) }
+    }
+
+    fun toggleHomeProfileApp(app: InstalledApp) {
+        val current = uiState.value.settings.homeProfileAppIds.toMutableSet()
+        if (!current.add(app.id)) current.remove(app.id)
+        viewModelScope.launch { settingsRepository.setHomeProfileAppIds(current) }
+    }
+
+    fun toggleWeekendProfileApp(app: InstalledApp) {
+        val current = uiState.value.settings.weekendProfileAppIds.toMutableSet()
+        if (!current.add(app.id)) current.remove(app.id)
+        viewModelScope.launch { settingsRepository.setWeekendProfileAppIds(current) }
+    }
+
+    fun setProfileWifiSsid(profileId: String, ssid: String) {
+        viewModelScope.launch { settingsRepository.setProfileWifiSsid(profileId, ssid) }
+    }
+
     private suspend fun launchApp(app: InstalledApp) {
         if (appsRepository.openApp(app)) {
             settingsRepository.incrementAppLaunchCount(app.packageName)
@@ -317,6 +384,13 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         usageAccessGranted.value = appsRepository.hasUsageAccess()
     }
 
+    fun refreshContextSignal() {
+        viewModelScope.launch {
+            val wifiSsid = withContext(Dispatchers.IO) { appsRepository.getCurrentWifiSsid() }
+            contextSignal.value = ContextSignal(now = LocalDateTime.now(), wifiSsid = wifiSsid)
+        }
+    }
+
     private suspend fun blockIfQuotaExceeded(app: InstalledApp): Boolean {
         val quotaMinutes = uiState.value.settings.appDailyQuotaMinutes[app.id] ?: return false
         if (quotaMinutes <= 0) return false
@@ -352,4 +426,45 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
 
 private fun InstalledApp.displayLabel(settings: LauncherSettings): String {
     return settings.appDisguises[id]?.takeIf { it.isNotBlank() } ?: label
+}
+
+private fun applyContextProfile(
+    apps: List<InstalledApp>,
+    settings: LauncherSettings,
+    activeProfileId: String
+): List<InstalledApp> {
+    if (!settings.contextProfilesEnabled || activeProfileId == "default") return apps
+    val allowedIds = profileAppIds(settings, activeProfileId)
+    if (allowedIds.isEmpty()) return apps
+    return apps.filter { it.id in allowedIds }
+}
+
+private fun profileAppIds(settings: LauncherSettings, profileId: String): Set<String> {
+    return when (profileId) {
+        "work" -> settings.workProfileAppIds
+        "home" -> settings.homeProfileAppIds
+        "weekend" -> settings.weekendProfileAppIds
+        else -> emptySet()
+    }
+}
+
+private fun resolveActiveContextProfile(settings: LauncherSettings, signal: ContextSignal): String {
+    if (!settings.contextProfilesEnabled) return "default"
+    if (!settings.contextProfilesAutoSwitch) return settings.manualContextProfileId
+
+    signal.wifiSsid?.let { ssid ->
+        when (ssid) {
+            settings.workProfileWifiSsid.takeIf { it.isNotBlank() } -> return "work"
+            settings.homeProfileWifiSsid.takeIf { it.isNotBlank() } -> return "home"
+            settings.weekendProfileWifiSsid.takeIf { it.isNotBlank() } -> return "weekend"
+        }
+    }
+
+    val day = signal.now.dayOfWeek
+    if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) return "weekend"
+
+    val hour = signal.now.hour
+    if (hour in 9..16) return "work"
+
+    return "home"
 }

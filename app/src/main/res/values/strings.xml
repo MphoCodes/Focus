@@ -44,6 +44,7 @@
     <string name="settings_focus_mode">Focus mode</string>
     <string name="settings_focus_mode_apps_count">%1$d apps</string>
     <string name="settings_app_time_quotas">App time quotas</string>
+    <string name="settings_context_profiles">Context profiles</string>
     <string name="settings_intent_prompts">Intent prompts</string>
     <string name="settings_pause_duration">Pause duration</string>
     <string name="settings_pause_duration_off">Off</string>
@@ -87,6 +88,29 @@
     <string name="quota_block_usage_desc">Focus needs usage access to enforce this %1$d minute quota.</string>
     <string name="quota_block_open_usage_access">OPEN USAGE ACCESS</string>
     <string name="quota_block_back">BACK TO FOCUS</string>
+
+    <!-- Context Profiles -->
+    <string name="profiles_title">Context profiles</string>
+    <string name="profiles_desc">Switch app lists for work, home, and weekends.</string>
+    <string name="profiles_enabled">Profiles enabled</string>
+    <string name="profiles_auto_switch">Auto switch</string>
+    <string name="profiles_active">Active profile</string>
+    <string name="profiles_manual">Manual profile</string>
+    <string name="profiles_section_apps">PROFILE APPS</string>
+    <string name="profiles_section_wifi">WI-FI TRIGGERS</string>
+    <string name="profiles_work">Work</string>
+    <string name="profiles_home">Home</string>
+    <string name="profiles_weekend">Weekend</string>
+    <string name="profiles_work_wifi">Work Wi-Fi</string>
+    <string name="profiles_home_wifi">Home Wi-Fi</string>
+    <string name="profiles_weekend_wifi">Weekend Wi-Fi</string>
+    <string name="profiles_wifi_placeholder">SSID</string>
+    <string name="profiles_work_apps_title">Work profile</string>
+    <string name="profiles_work_apps_desc">Choose the apps available in work context.</string>
+    <string name="profiles_home_apps_title">Home profile</string>
+    <string name="profiles_home_apps_desc">Choose the apps available in home context.</string>
+    <string name="profiles_weekend_apps_title">Weekend profile</string>
+    <string name="profiles_weekend_apps_desc">Choose the apps available on weekends.</string>
 
     <!-- Focus Mode -->
     <string name="focus_mode_title">Focus mode</string>

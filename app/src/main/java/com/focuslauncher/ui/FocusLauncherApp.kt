@@ -175,6 +175,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             "Hidden apps" to LauncherScreen.Hidden,
                             "App disguises" to LauncherScreen.Disguises,
                             "App time quotas" to LauncherScreen.Quotas,
+                            "Context profiles" to LauncherScreen.ContextProfiles,
                             "Focus mode" to LauncherScreen.FocusMode,
                             "Set as default" to LauncherScreen.DefaultHome,
                             "Stats" to LauncherScreen.Stats
@@ -292,6 +293,49 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             onSearchChange = viewModel::updateSearch,
                             onCycleQuota = viewModel::cycleAppDailyQuota,
                             onOpenUsageAccess = viewModel::openUsageAccessSettings,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.ContextProfiles -> ContextProfilesScreen(
+                            uiState = uiState,
+                            onToggleEnabled = viewModel::toggleContextProfilesEnabled,
+                            onToggleAutoSwitch = viewModel::toggleContextProfilesAutoSwitch,
+                            onCycleManualProfile = viewModel::cycleManualContextProfile,
+                            onSetProfileWifiSsid = viewModel::setProfileWifiSsid,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.WorkProfileApps -> ProfileAppSelectorScreen(
+                            title = stringResource(R.string.profiles_work_apps_title),
+                            description = stringResource(R.string.profiles_work_apps_desc),
+                            uiState = uiState,
+                            selectedIds = uiState.settings.workProfileAppIds,
+                            onSearchChange = viewModel::updateSearch,
+                            onToggleApp = viewModel::toggleWorkProfileApp,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.HomeProfileApps -> ProfileAppSelectorScreen(
+                            title = stringResource(R.string.profiles_home_apps_title),
+                            description = stringResource(R.string.profiles_home_apps_desc),
+                            uiState = uiState,
+                            selectedIds = uiState.settings.homeProfileAppIds,
+                            onSearchChange = viewModel::updateSearch,
+                            onToggleApp = viewModel::toggleHomeProfileApp,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.WeekendProfileApps -> ProfileAppSelectorScreen(
+                            title = stringResource(R.string.profiles_weekend_apps_title),
+                            description = stringResource(R.string.profiles_weekend_apps_desc),
+                            uiState = uiState,
+                            selectedIds = uiState.settings.weekendProfileAppIds,
+                            onSearchChange = viewModel::updateSearch,
+                            onToggleApp = viewModel::toggleWeekendProfileApp,
                             onNavigate = viewModel::navigateTo,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
@@ -586,6 +630,11 @@ private fun SettingsScreen(
                     value = stringResource(R.string.settings_focus_mode_apps_count, uiState.settings.appDailyQuotaMinutes.size),
                     onClick = { onNavigate(LauncherScreen.Quotas) }
                 )
+                SettingRow(
+                    label = stringResource(R.string.settings_context_profiles),
+                    value = displayProfileName(uiState.activeContextProfileId),
+                    onClick = { onNavigate(LauncherScreen.ContextProfiles) }
+                )
                 SettingRow(stringResource(R.string.settings_intent_prompts), onClick = { onNavigate(LauncherScreen.FocusMode) })
                 SettingRow(
                     label = stringResource(R.string.settings_pause_duration),
@@ -794,6 +843,135 @@ private fun AppQuotaScreen(
 
             if (apps.isEmpty()) {
                 item { MutedEmptyText(stringResource(R.string.home_no_apps_found)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContextProfilesScreen(
+    uiState: LauncherUiState,
+    onToggleEnabled: () -> Unit,
+    onToggleAutoSwitch: () -> Unit,
+    onCycleManualProfile: () -> Unit,
+    onSetProfileWifiSsid: (String, String) -> Unit,
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
+) {
+    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.ContextProfiles, showBack = true, onNavigate = onNavigate, onMenuClick = onMenuClick) {
+        LazyColumn(Modifier.fillMaxSize()) {
+            item {
+                Text(
+                    text = stringResource(R.string.profiles_title),
+                    color = LocalFocusPrimary.current,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.profiles_desc),
+                    color = FocusMuted,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp
+                )
+                Spacer(Modifier.height(24.dp))
+
+                ToggleRow(
+                    label = stringResource(R.string.profiles_enabled),
+                    selected = uiState.settings.contextProfilesEnabled,
+                    onClick = onToggleEnabled
+                )
+                ToggleRow(
+                    label = stringResource(R.string.profiles_auto_switch),
+                    selected = uiState.settings.contextProfilesAutoSwitch,
+                    onClick = onToggleAutoSwitch
+                )
+                SettingRow(
+                    label = stringResource(R.string.profiles_active),
+                    value = displayProfileName(uiState.activeContextProfileId)
+                )
+                SettingRow(
+                    label = stringResource(R.string.profiles_manual),
+                    value = displayProfileName(uiState.settings.manualContextProfileId),
+                    onClick = onCycleManualProfile
+                )
+                Spacer(Modifier.height(24.dp))
+
+                SettingsSection(stringResource(R.string.profiles_section_apps))
+                SettingRow(
+                    label = stringResource(R.string.profiles_work),
+                    value = stringResource(R.string.settings_focus_mode_apps_count, uiState.settings.workProfileAppIds.size),
+                    onClick = { onNavigate(LauncherScreen.WorkProfileApps) }
+                )
+                SettingRow(
+                    label = stringResource(R.string.profiles_home),
+                    value = stringResource(R.string.settings_focus_mode_apps_count, uiState.settings.homeProfileAppIds.size),
+                    onClick = { onNavigate(LauncherScreen.HomeProfileApps) }
+                )
+                SettingRow(
+                    label = stringResource(R.string.profiles_weekend),
+                    value = stringResource(R.string.settings_focus_mode_apps_count, uiState.settings.weekendProfileAppIds.size),
+                    onClick = { onNavigate(LauncherScreen.WeekendProfileApps) }
+                )
+                Spacer(Modifier.height(24.dp))
+
+                SettingsSection(stringResource(R.string.profiles_section_wifi))
+                ProfileWifiField(
+                    label = stringResource(R.string.profiles_work_wifi),
+                    value = uiState.settings.workProfileWifiSsid,
+                    onValueChange = { onSetProfileWifiSsid("work", it) }
+                )
+                ProfileWifiField(
+                    label = stringResource(R.string.profiles_home_wifi),
+                    value = uiState.settings.homeProfileWifiSsid,
+                    onValueChange = { onSetProfileWifiSsid("home", it) }
+                )
+                ProfileWifiField(
+                    label = stringResource(R.string.profiles_weekend_wifi),
+                    value = uiState.settings.weekendProfileWifiSsid,
+                    onValueChange = { onSetProfileWifiSsid("weekend", it) }
+                )
+                Spacer(Modifier.height(32.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileAppSelectorScreen(
+    title: String,
+    description: String,
+    uiState: LauncherUiState,
+    selectedIds: Set<String>,
+    onSearchChange: (String) -> Unit,
+    onToggleApp: (InstalledApp) -> Unit,
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
+) {
+    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.ContextProfiles, showBack = true, onNavigate = onNavigate, onMenuClick = onMenuClick) {
+        Column(Modifier.fillMaxSize()) {
+            Text(title, color = LocalFocusPrimary.current, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text(description, color = FocusMuted, fontSize = 12.sp, lineHeight = 17.sp)
+            Spacer(Modifier.height(28.dp))
+            SearchInput(
+                value = uiState.searchQuery,
+                placeholder = stringResource(R.string.selector_search_placeholder),
+                onValueChange = onSearchChange
+            )
+            Spacer(Modifier.height(18.dp))
+            val apps = selectorApps(uiState, includeHidden = true, includeOriginalLabel = true)
+            LazyColumn(Modifier.fillMaxSize()) {
+                items(apps, key = { it.id }) { app ->
+                    CheckRow(
+                        label = appDisplayLabel(app, uiState.settings),
+                        selected = app.id in selectedIds,
+                        onClick = { onToggleApp(app) }
+                    )
+                }
+                if (apps.isEmpty()) {
+                    item { MutedEmptyText(stringResource(R.string.home_no_apps_found)) }
+                }
             }
         }
     }
@@ -1458,6 +1636,50 @@ private fun QuotaRow(label: String, minutes: Int, onClick: () -> Unit) {
 }
 
 @Composable
+private fun ProfileWifiField(label: String, value: String, onValueChange: (String) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Text(
+            text = label,
+            color = FocusSecondary,
+            fontSize = 11.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(Modifier.height(6.dp))
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            textStyle = TextStyle(color = LocalFocusPrimary.current, fontSize = 15.sp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(42.dp)
+                .background(FocusInput)
+                .padding(horizontal = 12.dp),
+            decorationBox = { innerTextField ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxSize()) {
+                    Box(Modifier.weight(1f)) {
+                        if (value.isBlank()) {
+                            Text(
+                                text = stringResource(R.string.profiles_wifi_placeholder),
+                                color = FocusMuted,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            }
+        )
+    }
+}
+
+@Composable
 private fun SettingRow(label: String, value: String? = null, onClick: (() -> Unit)? = null) {
     Row(
         modifier = Modifier
@@ -1689,6 +1911,15 @@ private fun appDisplayLabel(app: InstalledApp, settings: com.focuslauncher.data.
 
 private fun formatUsageMinutes(usedMillis: Long): Int {
     return (usedMillis / 60_000L).coerceAtLeast(0L).toInt()
+}
+
+private fun displayProfileName(profileId: String): String {
+    return when (profileId) {
+        "work" -> "Work"
+        "home" -> "Home"
+        "weekend" -> "Weekend"
+        else -> "Default"
+    }
 }
 
 private fun isTimeInSchedule(now: LocalDateTime, start: String, end: String): Boolean {

@@ -34,6 +34,15 @@ class SettingsRepository(context: Context) {
             themeAccent = preferences[Keys.THEME_ACCENT] ?: "E-Ink Grey",
             appDisguises = AppDisguiseSerializer.decode(preferences[Keys.APP_DISGUISES].orEmpty()),
             appDailyQuotaMinutes = LaunchCountSerializer.decode(preferences[Keys.APP_DAILY_QUOTA_MINUTES].orEmpty()),
+            contextProfilesEnabled = preferences[Keys.CONTEXT_PROFILES_ENABLED] ?: false,
+            contextProfilesAutoSwitch = preferences[Keys.CONTEXT_PROFILES_AUTO_SWITCH] ?: true,
+            manualContextProfileId = preferences[Keys.MANUAL_CONTEXT_PROFILE_ID] ?: "default",
+            workProfileAppIds = preferences[Keys.WORK_PROFILE_APPS].orEmpty(),
+            homeProfileAppIds = preferences[Keys.HOME_PROFILE_APPS].orEmpty(),
+            weekendProfileAppIds = preferences[Keys.WEEKEND_PROFILE_APPS].orEmpty(),
+            workProfileWifiSsid = preferences[Keys.WORK_PROFILE_WIFI_SSID].orEmpty(),
+            homeProfileWifiSsid = preferences[Keys.HOME_PROFILE_WIFI_SSID].orEmpty(),
+            weekendProfileWifiSsid = preferences[Keys.WEEKEND_PROFILE_WIFI_SSID].orEmpty(),
             appLaunchCounts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()),
             appDeflectionCounts = LaunchCountSerializer.decode(preferences[Keys.APP_DEFLECTION_COUNTS].orEmpty()),
             intentLogs = preferences[Keys.INTENT_LOGS]?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList()
@@ -121,6 +130,41 @@ class SettingsRepository(context: Context) {
         }
     }
 
+    suspend fun setContextProfilesEnabled(value: Boolean) {
+        dataStore.edit { it[Keys.CONTEXT_PROFILES_ENABLED] = value }
+    }
+
+    suspend fun setContextProfilesAutoSwitch(value: Boolean) {
+        dataStore.edit { it[Keys.CONTEXT_PROFILES_AUTO_SWITCH] = value }
+    }
+
+    suspend fun setManualContextProfileId(value: String) {
+        dataStore.edit { it[Keys.MANUAL_CONTEXT_PROFILE_ID] = value }
+    }
+
+    suspend fun setWorkProfileAppIds(ids: Set<String>) {
+        dataStore.edit { it[Keys.WORK_PROFILE_APPS] = ids }
+    }
+
+    suspend fun setHomeProfileAppIds(ids: Set<String>) {
+        dataStore.edit { it[Keys.HOME_PROFILE_APPS] = ids }
+    }
+
+    suspend fun setWeekendProfileAppIds(ids: Set<String>) {
+        dataStore.edit { it[Keys.WEEKEND_PROFILE_APPS] = ids }
+    }
+
+    suspend fun setProfileWifiSsid(profileId: String, ssid: String) {
+        dataStore.edit { preferences ->
+            val cleaned = ssid.trim().trim('"')
+            when (profileId) {
+                "work" -> preferences[Keys.WORK_PROFILE_WIFI_SSID] = cleaned
+                "home" -> preferences[Keys.HOME_PROFILE_WIFI_SSID] = cleaned
+                "weekend" -> preferences[Keys.WEEKEND_PROFILE_WIFI_SSID] = cleaned
+            }
+        }
+    }
+
     suspend fun incrementAppLaunchCount(packageName: String) {
         dataStore.edit { preferences ->
             val counts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()).toMutableMap()
@@ -162,6 +206,15 @@ class SettingsRepository(context: Context) {
         val THEME_ACCENT = stringPreferencesKey("theme_accent")
         val APP_DISGUISES = stringSetPreferencesKey("app_disguises")
         val APP_DAILY_QUOTA_MINUTES = stringSetPreferencesKey("app_daily_quota_minutes")
+        val CONTEXT_PROFILES_ENABLED = booleanPreferencesKey("context_profiles_enabled")
+        val CONTEXT_PROFILES_AUTO_SWITCH = booleanPreferencesKey("context_profiles_auto_switch")
+        val MANUAL_CONTEXT_PROFILE_ID = stringPreferencesKey("manual_context_profile_id")
+        val WORK_PROFILE_APPS = stringSetPreferencesKey("work_profile_apps")
+        val HOME_PROFILE_APPS = stringSetPreferencesKey("home_profile_apps")
+        val WEEKEND_PROFILE_APPS = stringSetPreferencesKey("weekend_profile_apps")
+        val WORK_PROFILE_WIFI_SSID = stringPreferencesKey("work_profile_wifi_ssid")
+        val HOME_PROFILE_WIFI_SSID = stringPreferencesKey("home_profile_wifi_ssid")
+        val WEEKEND_PROFILE_WIFI_SSID = stringPreferencesKey("weekend_profile_wifi_ssid")
         val APP_LAUNCH_COUNTS = stringSetPreferencesKey("app_launch_counts")
         val APP_DEFLECTION_COUNTS = stringSetPreferencesKey("app_deflection_counts")
         val INTENT_LOGS = stringPreferencesKey("intent_logs")

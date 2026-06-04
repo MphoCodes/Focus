@@ -7,6 +7,7 @@ import android.app.usage.UsageStatsManager
 import android.os.Process
 import android.provider.Settings
 import android.util.Log
+import android.net.wifi.WifiManager
 import com.focuslauncher.data.model.InstalledApp
 import java.time.LocalDate
 import java.time.ZoneId
@@ -86,6 +87,15 @@ class AppsRepository(private val context: Context) {
         val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
+    }
+
+    @Suppress("DEPRECATION")
+    fun getCurrentWifiSsid(): String? {
+        val wifiManager = context.applicationContext.getSystemService(WifiManager::class.java) ?: return null
+        return wifiManager.connectionInfo?.ssid
+            ?.trim()
+            ?.trim('"')
+            ?.takeIf { it.isNotBlank() && it != WifiManager.UNKNOWN_SSID }
     }
 
     fun openDefaultHomeSettings() {
