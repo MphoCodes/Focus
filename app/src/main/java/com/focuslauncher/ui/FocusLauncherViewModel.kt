@@ -53,12 +53,16 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         screen,
         pendingPromptApp,
         appLaunchCounts
-    ) { apps: List<InstalledApp>,
-        settings: LauncherSettings,
-        query: String,
-        currentScreen: LauncherScreen,
-        promptApp: InstalledApp?,
-        launchCounts: Map<String, Int> ->
+    ) { args: Array<Any?> ->
+        @Suppress("UNCHECKED_CAST")
+        val apps = args[0] as List<InstalledApp>
+        val settings = args[1] as LauncherSettings
+        val query = args[2] as String
+        val currentScreen = args[3] as LauncherScreen
+        val promptApp = args[4] as InstalledApp?
+        @Suppress("UNCHECKED_CAST")
+        val launchCounts = args[5] as Map<String, Int>
+
         val normalizedQuery = query.trim()
 
         val sortedApps = when (settings.appOrder) {
