@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Focus Launcher</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Make your phone quiet.</string>
+    <string name="onboarding_desc_1">Focus Launcher replaces your noisy home screen with a calmer way to open apps.</string>
+    <string name="onboarding_desc_2">Hide distractions. Search only when needed. Pause before opening apps that steal your attention.</string>
+    <string name="onboarding_btn_get_started">GET STARTED</string>
+    <string name="onboarding_already_use">Already use Focus Launcher →</string>
+    <string name="onboarding_footer_quote">DESIGN IS AS MUCH ABOUT WHAT YOU LEAVE OUT AS WHAT YOU PUT IN. - DIGITAL STOICISM</string>
+
+    <!-- Home Screen -->
+    <string name="home_intent_title">Make your phone quiet.</string>
+    <string name="home_intent_header">INTENT</string>
+    <string name="home_favorites_header">Favorites</string>
+    <string name="home_no_favorites">No favourites selected.</string>
+    <string name="home_no_apps_found">No apps found.</string>
+    <string name="home_search_placeholder">Search apps…</string>
+    <string name="home_focus_mode_on">Focus mode active</string>
+    <string name="home_focus_mode_off">Focus mode off</string>
+
+    <!-- App Drawer -->
+    <string name="apps_title">Apps</string>
+    <string name="apps_search_placeholder">Search apps</string>
+    <string name="apps_loading">Loading apps.</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_apps">Apps</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_home_screen">HOME SCREEN</string>
+    <string name="settings_fav_apps">Favourite apps</string>
+    <string name="settings_hidden_apps">Hidden apps</string>
+    <string name="settings_app_order">App order</string>
+    <string name="settings_app_order_val">Alphabetical</string>
+    <string name="settings_set_default">Set as default home</string>
+
+    <string name="settings_section_focus">FOCUS</string>
+    <string name="settings_focus_mode">Focus mode</string>
+    <string name="settings_focus_mode_apps_count">%1$d apps</string>
+    <string name="settings_intent_prompts">Intent prompts</string>
+    <string name="settings_pause_duration">Pause duration</string>
+    <string name="settings_pause_duration_off">Off</string>
+    <string name="settings_pause_duration_sec">%1$d sec</string>
+
+    <string name="settings_section_privacy">PRIVACY</string>
+    <string name="settings_usage_access">Usage access</string>
+    <string name="settings_local_data_only">Local data only</string>
+
+    <string name="settings_section_appearance">APPEARANCE</string>
+    <string name="settings_black_theme">Black theme</string>
+    <string name="settings_text_size">Text size</string>
+    <string name="settings_text_size_val">Standard</string>
+
+    <string name="settings_section_about">ABOUT</string>
+    <string name="settings_about_footer">Designed for digital stoicism.</string>
+
+    <!-- App Selector -->
+    <string name="selector_search_placeholder">Search…</string>
+    <string name="favorites_selector_title">Favourite apps</string>
+    <string name="favorites_selector_desc">Choose what appears on your home screen.</string>
+    <string name="hidden_selector_title">Hidden apps</string>
+    <string name="hidden_selector_desc">Remove apps from search and the app drawer.</string>
+
+    <!-- Focus Mode -->
+    <string name="focus_mode_title">Focus mode</string>
+    <string name="focus_mode_desc">Choose apps that pull you in when you do not mean to open them.</string>
+    <string name="focus_mode_section_interventions">INTERVENTIONS</string>
+    <string name="focus_mode_ask_before_opening">Ask before opening</string>
+    <string name="focus_mode_btn_save">SAVE FOCUS MODE</string>
+    <string name="focus_mode_footer">Soft friction only. No hard blocking yet.</string>
+
+    <!-- Default Home (Set as Default) -->
+    <string name="default_home_title">Set Focus as your home screen</string>
+    <string name="default_home_desc">To work properly, Focus Launcher needs to become your default launcher.</string>
+    <string name="default_home_step_1_num">01</string>
+    <string name="default_home_step_1_text">Open default apps</string>
+    <string name="default_home_step_2_num">02</string>
+    <string name="default_home_step_2_text">Choose Home app</string>
+    <string name="default_home_step_3_num">03</string>
+    <string name="default_home_step_3_text">Select Focus Launcher</string>
+    <string name="default_home_btn_open_settings">OPEN SETTINGS</string>
+    <string name="default_home_btn_later">DO THIS LATER</string>
+
+    <!-- Intent Prompt -->
+    <string name="intent_prompt_title">Why are you opening %1$s?</string>
+    <string name="intent_prompt_subtitle">A short pause can break the habit.</string>
+    <string name="intent_prompt_reason_message">Message someone</string>
+    <string name="intent_prompt_reason_post">Post something</string>
+    <string name="intent_prompt_reason_work">Work</string>
+    <string name="intent_prompt_reason_habit">Just habit</string>
+    <string name="intent_prompt_btn_wait">WAIT %1$ds</string>
+    <string name="intent_prompt_btn_continue">CONTINUE</string>
+    <string name="intent_prompt_btn_cancel">CANCEL</string>
+
+    <!-- General/Misc -->
+    <string name="header_back">&lt;</string>
+</resources>
