@@ -501,6 +501,7 @@ private fun AppsScreen(
         }
     }
 }
+}
 
 @Composable
 private fun SettingsScreen(
