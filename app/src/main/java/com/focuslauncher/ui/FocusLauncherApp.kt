@@ -56,6 +56,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.net.Uri
+import android.app.SearchManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.focuslauncher.R
@@ -65,7 +69,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 private val FocusBackground = Color(0xFF000000) // Mockup has pure black backgrounds
-private val FocusPrimary = Color(0xFFFFFFFF)
+private val LocalFocusPrimary = androidx.compose.runtime.compositionLocalOf { Color(0xFFFFFFFF) }
 private val FocusSecondary = Color(0xFF8E8E8E) // Clean medium gray
 private val FocusMuted = Color(0xFF4E4E4E) // Darker gray for less contrast elements
 private val FocusDivider = Color(0xFF161616) // Subtle dividers
@@ -86,20 +90,27 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
         "Large" -> 1.15f
         else -> 1.0f
     }
+    
+    val currentAccentColor = when (uiState.settings.themeAccent) {
+        "Amber Mono" -> Color(0xFFFFB300)
+        "Forest Green" -> Color(0xFF4CAF50)
+        else -> Color(0xFFE2E2E2)
+    }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
 
     androidx.compose.runtime.CompositionLocalProvider(
         LocalFocusBackground provides currentBackground,
-        LocalTextSizeMultiplier provides currentTextMultiplier
+        LocalTextSizeMultiplier provides currentTextMultiplier,
+        LocalFocusPrimary provides currentAccentColor
     ) {
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
                 ModalDrawerSheet(
                     drawerContainerColor = LocalFocusBackground.current,
-                    drawerContentColor = FocusPrimary,
+                    drawerContentColor = LocalFocusPrimary.current,
                     drawerShape = RectangleShape,
                     drawerTonalElevation = 0.dp
                 ) {
@@ -113,7 +124,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                     ) {
                         Text(
                             text = "FOCUS",
-                            color = FocusPrimary,
+                            color = LocalFocusPrimary.current,
                             fontFamily = FontFamily.Monospace,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
@@ -145,7 +156,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                         navItems.forEach { (label, screen) ->
                             Text(
                                 text = label,
-                                color = if (uiState.screen == screen) FocusPrimary else FocusSecondary,
+                                color = if (uiState.screen == screen) LocalFocusPrimary.current else FocusSecondary,
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 14.sp,
                                 fontWeight = if (uiState.screen == screen) FontWeight.Bold else FontWeight.Normal,
@@ -202,6 +213,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             onToggleLocalDataOnly = viewModel::toggleLocalDataOnly,
                             onToggleBlackTheme = viewModel::toggleBlackThemeEnabled,
                             onCycleTextSize = viewModel::cycleTextSize,
+                            onCycleThemeAccent = viewModel::cycleThemeAccent,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
 
@@ -267,12 +279,12 @@ private fun OnboardingScreen(onGetStarted: () -> Unit, onMenuClick: () -> Unit) 
                 .border(BorderStroke(1.dp, FocusSecondary)),
             contentAlignment = Alignment.Center
         ) {
-            Text("F", color = FocusPrimary, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+            Text("F", color = LocalFocusPrimary.current, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
         }
         Spacer(Modifier.height(32.dp))
         Text(
             text = stringResource(R.string.onboarding_title),
-            color = FocusPrimary,
+            color = LocalFocusPrimary.current,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             lineHeight = 26.sp
@@ -332,7 +344,7 @@ private fun HomeScreen(
         Column(Modifier.fillMaxSize()) {
             Text(
                 text = now.format(DateTimeFormatter.ofPattern("HH:mm")),
-                color = FocusPrimary,
+                color = LocalFocusPrimary.current,
                 fontSize = 64.sp,
                 fontWeight = FontWeight.Light
             )
@@ -346,7 +358,7 @@ private fun HomeScreen(
             Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.home_intent_title),
-                color = FocusPrimary,
+                color = LocalFocusPrimary.current,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -395,7 +407,7 @@ private fun AppsScreen(
         Column(Modifier.fillMaxSize()) {
             Text(
                 text = stringResource(R.string.apps_title),
-                color = FocusPrimary,
+                color = LocalFocusPrimary.current,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -406,6 +418,7 @@ private fun AppsScreen(
                 onValueChange = onSearchChange
             )
             Spacer(Modifier.height(18.dp))
+            val context = LocalContext.current
             LazyColumn(Modifier.fillMaxSize()) {
                 items(uiState.visibleApps, key = { it.id }) { app ->
                     AppRow(label = app.label, onClick = { onOpenApp(app) })
@@ -413,7 +426,26 @@ private fun AppsScreen(
                 if (uiState.loading) {
                     item { MutedEmptyText(stringResource(R.string.apps_loading)) }
                 } else if (uiState.visibleApps.isEmpty()) {
-                    item { MutedEmptyText(stringResource(R.string.home_no_apps_found)) }
+                    if (uiState.searchQuery.isNotBlank()) {
+                        item {
+                            AppRow(label = "Search Web for '${uiState.searchQuery}'", onClick = {
+                                val intent = Intent(Intent.ACTION_WEB_SEARCH).apply {
+                                    putExtra(SearchManager.QUERY, uiState.searchQuery)
+                                }
+                                try {
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    val fallbackIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=${Uri.encode(uiState.searchQuery)}"))
+                                    try {
+                                        context.startActivity(fallbackIntent)
+                                    } catch (e2: Exception) {
+                                    }
+                                }
+                            })
+                        }
+                    } else {
+                        item { MutedEmptyText(stringResource(R.string.home_no_apps_found)) }
+                    }
                 }
             }
         }
@@ -429,6 +461,7 @@ private fun SettingsScreen(
     onToggleLocalDataOnly: () -> Unit,
     onToggleBlackTheme: () -> Unit,
     onCycleTextSize: () -> Unit,
+    onCycleThemeAccent: () -> Unit,
     onMenuClick: () -> Unit
 ) {
     FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.Settings, onNavigate = onNavigate, onMenuClick = onMenuClick) {
@@ -436,7 +469,7 @@ private fun SettingsScreen(
             item {
                 Text(
                     text = stringResource(R.string.settings_title),
-                    color = FocusPrimary,
+                    color = LocalFocusPrimary.current,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -489,6 +522,11 @@ private fun SettingsScreen(
                     value = uiState.settings.textSize,
                     onClick = onCycleTextSize
                 )
+                SettingRow(
+                    label = "Theme Accent",
+                    value = uiState.settings.themeAccent,
+                    onClick = onCycleThemeAccent
+                )
                 Spacer(Modifier.height(28.dp))
 
                 SettingsSection(stringResource(R.string.settings_section_about))
@@ -521,7 +559,7 @@ private fun AppSelectorScreen(
 ) {
     FocusShell(selected = LauncherScreen.Apps, selectedScreen = LauncherScreen.Apps, showBack = true, onNavigate = onNavigate, onMenuClick = onMenuClick) {
         Column(Modifier.fillMaxSize()) {
-            Text(title, color = FocusPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(title, color = LocalFocusPrimary.current, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             Text(description, color = FocusMuted, fontSize = 12.sp, lineHeight = 17.sp)
             Spacer(Modifier.height(28.dp))
@@ -564,7 +602,7 @@ private fun FocusModeScreen(
             item {
                 Text(
                     text = stringResource(R.string.focus_mode_title),
-                    color = FocusPrimary,
+                    color = LocalFocusPrimary.current,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -632,7 +670,7 @@ private fun DefaultHomeScreen(
         Column(Modifier.fillMaxSize()) {
             Text(
                 text = stringResource(R.string.default_home_title),
-                color = FocusPrimary,
+                color = LocalFocusPrimary.current,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 lineHeight = 27.sp
@@ -701,7 +739,7 @@ private fun IntentPromptScreen(
         Spacer(Modifier.height(26.dp))
         Text(
             text = stringResource(R.string.intent_prompt_title, app.label),
-            color = FocusPrimary,
+            color = LocalFocusPrimary.current,
             fontSize = 21.sp,
             fontWeight = FontWeight.Bold,
             lineHeight = 25.sp
@@ -790,10 +828,9 @@ private fun Header(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (selectedScreen == LauncherScreen.DefaultHome) {
-            // Set as Default Screen (4th mockup): "FOCUS" on left, hamburger menu icon on right
             Text(
                 text = "FOCUS",
-                color = FocusPrimary,
+                color = LocalFocusPrimary.current,
                 fontFamily = FontFamily.Monospace,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
@@ -803,13 +840,12 @@ private fun Header(
             Icon(
                 imageVector = Icons.Default.Menu,
                 contentDescription = "Menu",
-                tint = FocusPrimary,
+                tint = LocalFocusPrimary.current,
                 modifier = Modifier
                     .size(18.dp)
                     .clickable { onMenuClick() }
             )
         } else {
-            // Standard Screen header: hamburger menu or back button on left, "FOCUS" center, drawer time on right
             Box(
                 modifier = Modifier.width(48.dp),
                 contentAlignment = Alignment.CenterStart
@@ -817,7 +853,7 @@ private fun Header(
                 if (showBack) {
                     Text(
                         text = stringResource(R.string.header_back),
-                        color = FocusPrimary,
+                        color = LocalFocusPrimary.current,
                         fontFamily = FontFamily.Monospace,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
@@ -827,7 +863,7 @@ private fun Header(
                     Icon(
                         imageVector = Icons.Default.Menu,
                         contentDescription = "Menu",
-                        tint = FocusPrimary,
+                        tint = LocalFocusPrimary.current,
                         modifier = Modifier
                             .size(18.dp)
                             .clickable { onMenuClick() }
@@ -837,7 +873,7 @@ private fun Header(
 
             Text(
                 text = "FOCUS",
-                color = FocusPrimary,
+                color = LocalFocusPrimary.current,
                 fontFamily = FontFamily.Monospace,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
@@ -874,14 +910,14 @@ private fun TopMark(onMenuClick: () -> Unit) {
         Icon(
             imageVector = Icons.Default.Menu,
             contentDescription = "Menu",
-            tint = FocusPrimary,
+            tint = LocalFocusPrimary.current,
             modifier = Modifier
                 .size(18.dp)
                 .clickable { onMenuClick() }
         )
         Text(
             text = "FOCUS",
-            color = FocusPrimary,
+            color = LocalFocusPrimary.current,
             fontFamily = FontFamily.Monospace,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
@@ -943,13 +979,13 @@ private fun NavItem(
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = if (selected) FocusPrimary else FocusMuted,
+            tint = if (selected) LocalFocusPrimary.current else FocusMuted,
             modifier = Modifier.size(20.dp)
         )
         Spacer(Modifier.height(4.dp))
         Text(
             text = label,
-            color = if (selected) FocusPrimary else FocusMuted,
+            color = if (selected) LocalFocusPrimary.current else FocusMuted,
             fontFamily = FontFamily.Monospace,
             fontSize = 9.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
@@ -966,7 +1002,7 @@ private fun SearchInput(value: String, placeholder: String, onValueChange: (Stri
         value = value,
         onValueChange = onValueChange,
         singleLine = true,
-        textStyle = TextStyle(color = FocusPrimary, fontSize = (14 * multiplier).sp, fontFamily = FontFamily.Monospace),
+        textStyle = TextStyle(color = LocalFocusPrimary.current, fontSize = (14 * multiplier).sp, fontFamily = FontFamily.Monospace),
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
@@ -1001,7 +1037,7 @@ private fun AppRow(label: String, onClick: () -> Unit) {
     ) {
         Text(
             text = label,
-            color = FocusPrimary,
+            color = LocalFocusPrimary.current,
             fontSize = 15.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -1020,7 +1056,7 @@ private fun CheckRow(label: String, selected: Boolean, muted: Boolean = false, o
     ) {
         Text(
             text = label,
-            color = if (muted) FocusMuted else FocusPrimary,
+            color = if (muted) FocusMuted else LocalFocusPrimary.current,
             fontSize = 15.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             maxLines = 1,
@@ -1030,8 +1066,8 @@ private fun CheckRow(label: String, selected: Boolean, muted: Boolean = false, o
         Box(
             modifier = Modifier
                 .size(14.dp)
-                .background(if (selected) FocusPrimary else Color.Transparent)
-                .border(BorderStroke(1.dp, if (selected) FocusPrimary else FocusMuted))
+                .background(if (selected) LocalFocusPrimary.current else Color.Transparent)
+                .border(BorderStroke(1.dp, if (selected) LocalFocusPrimary.current else FocusMuted))
         )
     }
 }
@@ -1047,7 +1083,7 @@ private fun SettingRow(label: String, value: String? = null, onClick: (() -> Uni
     ) {
         Text(
             text = label,
-            color = FocusPrimary,
+            color = LocalFocusPrimary.current,
             fontSize = 14.sp,
             modifier = Modifier.weight(1f),
             maxLines = 1,
@@ -1071,7 +1107,7 @@ private fun ToggleRow(label: String, selected: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, color = FocusPrimary, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        Text(text = label, color = LocalFocusPrimary.current, fontSize = 14.sp, modifier = Modifier.weight(1f))
         Box(
             modifier = Modifier
                 .width(26.dp)
@@ -1083,7 +1119,7 @@ private fun ToggleRow(label: String, selected: Boolean, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .size(8.dp)
-                    .background(if (selected) FocusPrimary else FocusMuted)
+                    .background(if (selected) LocalFocusPrimary.current else FocusMuted)
             )
         }
     }
@@ -1094,7 +1130,7 @@ private fun StepRow(number: String, text: String) {
     Column(Modifier.fillMaxWidth()) {
         Text(text = number, color = FocusMuted, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
         Spacer(Modifier.height(6.dp))
-        Text(text = text, color = FocusPrimary, fontSize = 16.sp)
+        Text(text = text, color = LocalFocusPrimary.current, fontSize = 16.sp)
         Spacer(Modifier.height(20.dp))
     }
 }
@@ -1117,7 +1153,7 @@ private fun FocusButton(text: String, enabled: Boolean = true, onClick: () -> Un
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
-            .background(if (enabled) FocusPrimary else FocusMuted)
+            .background(if (enabled) LocalFocusPrimary.current else FocusMuted)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -1144,7 +1180,7 @@ private fun GhostButton(text: String, onClick: () -> Unit) {
     ) {
         Text(
             text = text,
-            color = FocusPrimary,
+            color = LocalFocusPrimary.current,
             fontFamily = FontFamily.Monospace,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,

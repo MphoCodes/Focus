@@ -187,6 +187,16 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch { settingsRepository.setTextSize(next) }
     }
 
+    fun cycleThemeAccent() {
+        val next = when (uiState.value.settings.themeAccent) {
+            "E-Ink Grey" -> "Amber Mono"
+            "Amber Mono" -> "Forest Green"
+            "Forest Green" -> "E-Ink Grey"
+            else -> "E-Ink Grey"
+        }
+        viewModelScope.launch { settingsRepository.setThemeAccent(next) }
+    }
+
     fun cycleAppOrder() {
         val next = when (uiState.value.settings.appOrder) {
             "Alphabetical" -> "Installation Date"

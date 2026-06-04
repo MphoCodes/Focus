@@ -27,6 +27,7 @@ class SettingsRepository(context: Context) {
             blackThemeEnabled = preferences[Keys.BLACK_THEME_ENABLED] ?: true,
             textSize = preferences[Keys.TEXT_SIZE] ?: "Standard",
             appOrder = preferences[Keys.APP_ORDER] ?: "Alphabetical",
+            themeAccent = preferences[Keys.THEME_ACCENT] ?: "E-Ink Grey",
             appLaunchCounts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty())
         )
     }
@@ -67,6 +68,10 @@ class SettingsRepository(context: Context) {
         dataStore.edit { it[Keys.APP_ORDER] = value }
     }
 
+    suspend fun setThemeAccent(value: String) {
+        dataStore.edit { it[Keys.THEME_ACCENT] = value }
+    }
+
     suspend fun incrementAppLaunchCount(packageName: String) {
         dataStore.edit { preferences ->
             val counts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()).toMutableMap()
@@ -85,6 +90,7 @@ class SettingsRepository(context: Context) {
         val BLACK_THEME_ENABLED = booleanPreferencesKey("black_theme_enabled")
         val TEXT_SIZE = stringPreferencesKey("text_size")
         val APP_ORDER = stringPreferencesKey("app_order")
+        val THEME_ACCENT = stringPreferencesKey("theme_accent")
         val APP_LAUNCH_COUNTS = stringSetPreferencesKey("app_launch_counts")
     }
 }
@@ -109,4 +115,3 @@ object LaunchCountSerializer {
             .toSet()
     }
 }
-
