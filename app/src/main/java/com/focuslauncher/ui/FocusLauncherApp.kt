@@ -172,6 +172,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             "Settings" to LauncherScreen.Settings,
                             "Favourite apps" to LauncherScreen.Favorites,
                             "Hidden apps" to LauncherScreen.Hidden,
+                            "App disguises" to LauncherScreen.Disguises,
                             "Focus mode" to LauncherScreen.FocusMode,
                             "Set as default" to LauncherScreen.DefaultHome,
                             "Stats" to LauncherScreen.Stats
@@ -264,6 +265,14 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             includeHidden = true,
                             onSearchChange = viewModel::updateSearch,
                             onToggleApp = viewModel::toggleHidden,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.Disguises -> AppDisguiseScreen(
+                            uiState = uiState,
+                            onSearchChange = viewModel::updateSearch,
+                            onDisguiseChange = viewModel::setAppDisguise,
                             onNavigate = viewModel::navigateTo,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
@@ -415,7 +424,7 @@ private fun HomeScreen(
                 )
             } else {
                 homeList.take(7).forEach { app ->
-                    AppRow(label = app.label, onClick = { onOpenApp(app) }, onLongClick = { onOpenAppInfo(app) })
+                    AppRow(label = appDisplayLabel(app, uiState.settings), onClick = { onOpenApp(app) }, onLongClick = { onOpenAppInfo(app) })
                 }
             }
             Spacer(Modifier.height(28.dp))
@@ -475,7 +484,7 @@ private fun AppsScreen(
                     item { MutedEmptyText("Zero-Apps Schedule is active") }
                 } else {
                     items(uiState.visibleApps, key = { it.id }) { app ->
-                        AppRow(label = app.label, onClick = { onOpenApp(app) }, onLongClick = { onOpenAppInfo(app) })
+                        AppRow(label = appDisplayLabel(app, uiState.settings), onClick = { onOpenApp(app) }, onLongClick = { onOpenAppInfo(app) })
                     }
                     if (uiState.loading) {
                         item { MutedEmptyText(stringResource(R.string.apps_loading)) }
@@ -534,6 +543,11 @@ private fun SettingsScreen(
                 SettingsSection(stringResource(R.string.settings_section_home_screen))
                 SettingRow(stringResource(R.string.settings_fav_apps), onClick = { onNavigate(LauncherScreen.Favorites) })
                 SettingRow(stringResource(R.string.settings_hidden_apps), onClick = { onNavigate(LauncherScreen.Hidden) })
+                SettingRow(
+                    label = stringResource(R.string.settings_app_disguises),
+                    value = stringResource(R.string.settings_focus_mode_apps_count, uiState.settings.appDisguises.size),
+                    onClick = { onNavigate(LauncherScreen.Disguises) }
+                )
                 SettingRow(
                     label = stringResource(R.string.settings_app_order),
                     value = uiState.settings.appOrder,
@@ -643,10 +657,58 @@ private fun AppSelectorScreen(
             LazyColumn(Modifier.fillMaxSize()) {
                 items(apps, key = { it.id }) { app ->
                     CheckRow(
-                        label = app.label,
+                        label = appDisplayLabel(app, uiState.settings),
                         selected = app.id in selectedIds,
                         muted = app.id in uiState.settings.hiddenAppIds && !includeHidden,
                         onClick = { onToggleApp(app) }
+                    )
+                }
+                if (apps.isEmpty()) {
+                    item { MutedEmptyText(stringResource(R.string.home_no_apps_found)) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppDisguiseScreen(
+    uiState: LauncherUiState,
+    onSearchChange: (String) -> Unit,
+    onDisguiseChange: (InstalledApp, String) -> Unit,
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
+) {
+    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.Disguises, showBack = true, onNavigate = onNavigate, onMenuClick = onMenuClick) {
+        Column(Modifier.fillMaxSize()) {
+            Text(
+                text = stringResource(R.string.disguises_title),
+                color = LocalFocusPrimary.current,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.disguises_desc),
+                color = FocusMuted,
+                fontSize = 12.sp,
+                lineHeight = 17.sp
+            )
+            Spacer(Modifier.height(28.dp))
+            SearchInput(
+                value = uiState.searchQuery,
+                placeholder = stringResource(R.string.selector_search_placeholder),
+                onValueChange = onSearchChange
+            )
+            Spacer(Modifier.height(18.dp))
+
+            val apps = selectorApps(uiState, includeHidden = true, includeOriginalLabel = true)
+            LazyColumn(Modifier.fillMaxSize()) {
+                items(apps, key = { it.id }) { app ->
+                    DisguiseRow(
+                        app = app,
+                        value = uiState.settings.appDisguises[app.id].orEmpty(),
+                        onValueChange = { onDisguiseChange(app, it) }
                     )
                 }
                 if (apps.isEmpty()) {
@@ -694,7 +756,7 @@ private fun FocusModeScreen(
 
             items(apps, key = { it.id }) { app ->
                 CheckRow(
-                    label = app.label,
+                    label = appDisplayLabel(app, uiState.settings),
                     selected = app.id in uiState.settings.intentPromptAppIds,
                     onClick = { onToggleApp(app) }
                 )
@@ -834,7 +896,7 @@ private fun IntentPromptScreen(
 
         Spacer(Modifier.height(16.dp))
         Text(
-            text = stringResource(R.string.intent_prompt_title, app.label),
+            text = stringResource(R.string.intent_prompt_title, appDisplayLabel(app, uiState.settings)),
             color = LocalFocusPrimary.current,
             fontSize = 21.sp,
             fontWeight = FontWeight.Bold,
@@ -1191,6 +1253,50 @@ private fun CheckRow(label: String, selected: Boolean, muted: Boolean = false, o
 }
 
 @Composable
+private fun DisguiseRow(app: InstalledApp, value: String, onValueChange: (String) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp)
+    ) {
+        Text(
+            text = app.label,
+            color = FocusSecondary,
+            fontSize = 11.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(Modifier.height(6.dp))
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            textStyle = TextStyle(color = LocalFocusPrimary.current, fontSize = 15.sp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(42.dp)
+                .background(FocusInput)
+                .padding(horizontal = 12.dp),
+            decorationBox = { innerTextField ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxSize()) {
+                    Box(Modifier.weight(1f)) {
+                        if (value.isBlank()) {
+                            Text(
+                                text = stringResource(R.string.disguises_placeholder),
+                                color = FocusMuted,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            }
+        )
+    }
+}
+
+@Composable
 private fun SettingRow(label: String, value: String? = null, onClick: (() -> Unit)? = null) {
     Row(
         modifier = Modifier
@@ -1400,11 +1506,24 @@ private fun Text(
     )
 }
 
-private fun selectorApps(uiState: LauncherUiState, includeHidden: Boolean): List<InstalledApp> {
+private fun selectorApps(
+    uiState: LauncherUiState,
+    includeHidden: Boolean,
+    includeOriginalLabel: Boolean = false
+): List<InstalledApp> {
     val query = uiState.searchQuery.trim()
     return uiState.installedApps
         .filter { includeHidden || it.id !in uiState.settings.hiddenAppIds }
-        .filter { query.isBlank() || it.label.contains(query, ignoreCase = true) }
+        .filter {
+            query.isBlank() ||
+                appDisplayLabel(it, uiState.settings).contains(query, ignoreCase = true) ||
+                (includeOriginalLabel && it.label.contains(query, ignoreCase = true))
+        }
+        .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { appDisplayLabel(it, uiState.settings) })
+}
+
+private fun appDisplayLabel(app: InstalledApp, settings: com.focuslauncher.data.model.LauncherSettings): String {
+    return settings.appDisguises[app.id]?.takeIf { it.isNotBlank() } ?: app.label
 }
 
 private fun isTimeInSchedule(now: LocalDateTime, start: String, end: String): Boolean {
@@ -1459,7 +1578,8 @@ private fun StatsScreen(
                     MutedEmptyText("No deflections yet.")
                 } else {
                     deflections.entries.sortedByDescending { it.value }.forEach { (pkg, count) ->
-                        val label = uiState.installedApps.find { it.packageName == pkg }?.label ?: pkg
+                        val app = uiState.installedApps.find { it.packageName == pkg }
+                        val label = app?.let { appDisplayLabel(it, uiState.settings) } ?: pkg
                         SettingRow(label = label, value = count.toString())
                     }
                 }
@@ -1471,7 +1591,8 @@ private fun StatsScreen(
                     MutedEmptyText("No launches yet.")
                 } else {
                     launches.entries.sortedByDescending { it.value }.forEach { (pkg, count) ->
-                        val label = uiState.installedApps.find { it.packageName == pkg }?.label ?: pkg
+                        val app = uiState.installedApps.find { it.packageName == pkg }
+                        val label = app?.let { appDisplayLabel(it, uiState.settings) } ?: pkg
                         SettingRow(label = label, value = count.toString())
                     }
                 }

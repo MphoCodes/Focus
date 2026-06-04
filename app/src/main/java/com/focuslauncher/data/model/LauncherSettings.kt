@@ -15,6 +15,7 @@ data class LauncherSettings(
     val textSize: String = "Standard",
     val appOrder: String = "Alphabetical",
     val themeAccent: String = "E-Ink Grey",
+    val appDisguises: Map<String, String> = emptyMap(),
     val appLaunchCounts: Map<String, Int> = emptyMap(),
     val appDeflectionCounts: Map<String, Int> = emptyMap(),
     val intentLogs: List<String> = emptyList()

@@ -21,6 +21,7 @@ enum class LauncherScreen {
     Settings,
     Favorites,
     Hidden,
+    Disguises,
     FocusMode,
     DefaultHome,
     Stats
@@ -70,27 +71,27 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
                         } catch (e: Exception) {
                             0L
                         }
-                    }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.label }
+                    }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.displayLabel(settings) }
                 )
             }
             "Most Used" -> {
                 apps.sortedWith(
                     compareByDescending<InstalledApp> { app ->
                         settings.appLaunchCounts[app.packageName] ?: 0
-                    }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.label }
+                    }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.displayLabel(settings) }
                 )
             }
             else -> { // "Alphabetical"
-                apps.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+                apps.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayLabel(settings) })
             }
         }
 
         val visibleApps = sortedApps
             .filterNot { it.id in settings.hiddenAppIds }
-            .filter { normalizedQuery.isBlank() || it.label.contains(normalizedQuery, ignoreCase = true) }
+            .filter { normalizedQuery.isBlank() || it.displayLabel(settings).contains(normalizedQuery, ignoreCase = true) }
         val favorites = apps
             .filter { it.id in settings.favoriteAppIds && it.id !in settings.hiddenAppIds }
-            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayLabel(settings) })
 
         LauncherUiState(
             screen = currentScreen,
@@ -230,6 +231,10 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch { settingsRepository.setAppOrder(next) }
     }
 
+    fun setAppDisguise(app: InstalledApp, disguise: String) {
+        viewModelScope.launch { settingsRepository.setAppDisguise(app.id, disguise) }
+    }
+
     private fun launchApp(app: InstalledApp) {
         viewModelScope.launch {
             if (appsRepository.openApp(app)) {
@@ -264,4 +269,8 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
     fun openDefaultHomeSettings() {
         appsRepository.openDefaultHomeSettings()
     }
+}
+
+private fun InstalledApp.displayLabel(settings: LauncherSettings): String {
+    return settings.appDisguises[id]?.takeIf { it.isNotBlank() } ?: label
 }

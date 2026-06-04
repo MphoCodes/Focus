@@ -52,4 +52,45 @@ class SettingsRepositoryTest {
         val encoded = LaunchCountSerializer.encode(emptyMap())
         assertTrue(encoded.isEmpty())
     }
+
+    @Test
+    fun testDecodeAppDisguises_validInput() {
+        val appId = "com.instagram.android/.MainActivity"
+        val encoded = setOf("${appId.length}:${appId}Endless Scrolling")
+        val decoded = AppDisguiseSerializer.decode(encoded)
+
+        assertEquals(1, decoded.size)
+        assertEquals("Endless Scrolling", decoded[appId])
+    }
+
+    @Test
+    fun testDecodeAppDisguises_invalidInput_ignored() {
+        val encoded = setOf(
+            "invalid",
+            "abc:com.appAlias",
+            "0:Alias",
+            "99:shortAlias",
+            "8:com.app "
+        )
+        val decoded = AppDisguiseSerializer.decode(encoded)
+
+        assertTrue(decoded.isEmpty())
+    }
+
+    @Test
+    fun testEncodeAppDisguises_filtersBlankValues() {
+        val encoded = AppDisguiseSerializer.encode(
+            mapOf(
+                "com.instagram.android/.MainActivity" to " Endless Scrolling ",
+                "com.blank/.Main" to " ",
+                "" to "Tedious Task"
+            )
+        )
+
+        assertEquals(1, encoded.size)
+        assertEquals(
+            mapOf("com.instagram.android/.MainActivity" to "Endless Scrolling"),
+            AppDisguiseSerializer.decode(encoded)
+        )
+    }
 }

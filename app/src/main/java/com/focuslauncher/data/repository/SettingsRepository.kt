@@ -32,6 +32,7 @@ class SettingsRepository(context: Context) {
             textSize = preferences[Keys.TEXT_SIZE] ?: "Standard",
             appOrder = preferences[Keys.APP_ORDER] ?: "Alphabetical",
             themeAccent = preferences[Keys.THEME_ACCENT] ?: "E-Ink Grey",
+            appDisguises = AppDisguiseSerializer.decode(preferences[Keys.APP_DISGUISES].orEmpty()),
             appLaunchCounts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()),
             appDeflectionCounts = LaunchCountSerializer.decode(preferences[Keys.APP_DEFLECTION_COUNTS].orEmpty()),
             intentLogs = preferences[Keys.INTENT_LOGS]?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList()
@@ -94,6 +95,19 @@ class SettingsRepository(context: Context) {
         dataStore.edit { it[Keys.THEME_ACCENT] = value }
     }
 
+    suspend fun setAppDisguise(appId: String, disguise: String) {
+        dataStore.edit { preferences ->
+            val disguises = AppDisguiseSerializer.decode(preferences[Keys.APP_DISGUISES].orEmpty()).toMutableMap()
+            val cleaned = disguise.trim()
+            if (cleaned.isBlank()) {
+                disguises.remove(appId)
+            } else {
+                disguises[appId] = cleaned
+            }
+            preferences[Keys.APP_DISGUISES] = AppDisguiseSerializer.encode(disguises)
+        }
+    }
+
     suspend fun incrementAppLaunchCount(packageName: String) {
         dataStore.edit { preferences ->
             val counts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()).toMutableMap()
@@ -133,6 +147,7 @@ class SettingsRepository(context: Context) {
         val TEXT_SIZE = stringPreferencesKey("text_size")
         val APP_ORDER = stringPreferencesKey("app_order")
         val THEME_ACCENT = stringPreferencesKey("theme_accent")
+        val APP_DISGUISES = stringSetPreferencesKey("app_disguises")
         val APP_LAUNCH_COUNTS = stringSetPreferencesKey("app_launch_counts")
         val APP_DEFLECTION_COUNTS = stringSetPreferencesKey("app_deflection_counts")
         val INTENT_LOGS = stringPreferencesKey("intent_logs")
@@ -156,6 +171,36 @@ object LaunchCountSerializer {
         return counts
             .filterValues { it > 0 }
             .map { (packageName, count) -> "$packageName=$count" }
+            .toSet()
+    }
+}
+
+object AppDisguiseSerializer {
+    fun decode(encoded: Set<String>): Map<String, String> {
+        return encoded.mapNotNull { entry ->
+            val separatorIndex = entry.indexOf(':')
+            if (separatorIndex <= 0) return@mapNotNull null
+
+            val idLength = entry.substring(0, separatorIndex).toIntOrNull() ?: return@mapNotNull null
+            val idStart = separatorIndex + 1
+            val aliasStart = idStart + idLength
+            if (idLength <= 0 || aliasStart > entry.length) return@mapNotNull null
+
+            val appId = entry.substring(idStart, aliasStart)
+            val alias = entry.substring(aliasStart).trim()
+            if (appId.isBlank() || alias.isBlank()) return@mapNotNull null
+
+            appId to alias
+        }.toMap()
+    }
+
+    fun encode(disguises: Map<String, String>): Set<String> {
+        return disguises
+            .mapNotNull { (appId, alias) ->
+                val cleanedAlias = alias.trim()
+                if (appId.isBlank() || cleanedAlias.isBlank()) return@mapNotNull null
+                "${appId.length}:$appId$cleanedAlias"
+            }
             .toSet()
     }
 }
