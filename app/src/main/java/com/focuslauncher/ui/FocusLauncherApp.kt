@@ -115,7 +115,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             text = "FOCUS",
                             color = FocusPrimary,
                             fontFamily = FontFamily.Monospace,
-                            fontSize = (18f * LocalTextSizeMultiplier.current).sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 3.sp,
                             modifier = Modifier.padding(vertical = 16.dp)
@@ -147,7 +147,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                                 text = label,
                                 color = if (uiState.screen == screen) FocusPrimary else FocusSecondary,
                                 fontFamily = FontFamily.Monospace,
-                                fontSize = (14f * LocalTextSizeMultiplier.current).sp,
+                                fontSize = 14.sp,
                                 fontWeight = if (uiState.screen == screen) FontWeight.Bold else FontWeight.Normal,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -199,7 +199,6 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             onNavigate = viewModel::navigateTo,
                             onCyclePauseDuration = viewModel::cyclePauseDuration,
                             onCycleAppOrder = viewModel::cycleAppOrder,
-                            onToggleUsageAccess = viewModel::toggleUsageAccessEnabled,
                             onToggleLocalDataOnly = viewModel::toggleLocalDataOnly,
                             onToggleBlackTheme = viewModel::toggleBlackThemeEnabled,
                             onCycleTextSize = viewModel::cycleTextSize,
@@ -427,7 +426,6 @@ private fun SettingsScreen(
     onNavigate: (LauncherScreen) -> Unit,
     onCyclePauseDuration: () -> Unit,
     onCycleAppOrder: () -> Unit,
-    onToggleUsageAccess: () -> Unit,
     onToggleLocalDataOnly: () -> Unit,
     onToggleBlackTheme: () -> Unit,
     onCycleTextSize: () -> Unit,
@@ -469,10 +467,9 @@ private fun SettingsScreen(
                 Spacer(Modifier.height(28.dp))
 
                 SettingsSection(stringResource(R.string.settings_section_privacy))
-                ToggleRow(
+                SettingRow(
                     label = stringResource(R.string.settings_usage_access),
-                    selected = uiState.settings.usageAccessEnabled,
-                    onClick = onToggleUsageAccess
+                    value = stringResource(R.string.settings_usage_access_not_used)
                 )
                 ToggleRow(
                     label = stringResource(R.string.settings_local_data_only),
@@ -983,7 +980,7 @@ private fun SearchInput(value: String, placeholder: String, onValueChange: (Stri
                             text = placeholder,
                             color = FocusMuted,
                             fontFamily = FontFamily.Monospace,
-                            fontSize = (12 * multiplier).sp
+                            fontSize = 12.sp
                         )
                     }
                     innerTextField()

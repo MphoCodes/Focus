@@ -49,6 +49,7 @@
 
     <string name="settings_section_privacy">PRIVACY</string>
     <string name="settings_usage_access">Usage access</string>
+    <string name="settings_usage_access_not_used">Not used</string>
     <string name="settings_local_data_only">Local data only</string>
 
     <string name="settings_section_appearance">APPEARANCE</string>

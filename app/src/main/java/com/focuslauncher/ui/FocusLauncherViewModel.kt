@@ -44,25 +44,18 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
     private val screen = MutableStateFlow(LauncherScreen.Home)
     private val pendingPromptApp = MutableStateFlow<InstalledApp?>(null)
     private val loading = MutableStateFlow(true)
-    private val appLaunchCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
 
     private val baseUiState = combine(
         installedApps,
         settingsRepository.settings,
         searchQuery,
         screen,
-        pendingPromptApp,
-        appLaunchCounts
-    ) { args: Array<Any?> ->
-        @Suppress("UNCHECKED_CAST")
-        val apps = args[0] as List<InstalledApp>
-        val settings = args[1] as LauncherSettings
-        val query = args[2] as String
-        val currentScreen = args[3] as LauncherScreen
-        val promptApp = args[4] as InstalledApp?
-        @Suppress("UNCHECKED_CAST")
-        val launchCounts = args[5] as Map<String, Int>
-
+        pendingPromptApp
+    ) { apps: List<InstalledApp>,
+        settings: LauncherSettings,
+        query: String,
+        currentScreen: LauncherScreen,
+        promptApp: InstalledApp? ->
         val normalizedQuery = query.trim()
 
         val sortedApps = when (settings.appOrder) {
@@ -82,7 +75,7 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
             "Most Used" -> {
                 apps.sortedWith(
                     compareByDescending<InstalledApp> { app ->
-                        launchCounts[app.packageName] ?: 0
+                        settings.appLaunchCounts[app.packageName] ?: 0
                     }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.label }
                 )
             }
@@ -174,11 +167,6 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch { settingsRepository.setFocusPauseSeconds(next) }
     }
 
-    fun toggleUsageAccessEnabled() {
-        val current = uiState.value.settings.usageAccessEnabled
-        viewModelScope.launch { settingsRepository.setUsageAccessEnabled(!current) }
-    }
-
     fun toggleLocalDataOnly() {
         val current = uiState.value.settings.localDataOnly
         viewModelScope.launch { settingsRepository.setLocalDataOnly(!current) }
@@ -209,25 +197,26 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch { settingsRepository.setAppOrder(next) }
     }
 
-    private fun incrementLaunchCount(packageName: String) {
-        val current = appLaunchCounts.value.toMutableMap()
-        current[packageName] = (current[packageName] ?: 0) + 1
-        appLaunchCounts.value = current
+    private fun launchApp(app: InstalledApp) {
+        viewModelScope.launch {
+            if (appsRepository.openApp(app)) {
+                settingsRepository.incrementAppLaunchCount(app.packageName)
+            }
+        }
     }
 
     fun requestOpenApp(app: InstalledApp) {
-        incrementLaunchCount(app.packageName)
         if (app.id in uiState.value.settings.intentPromptAppIds) {
             pendingPromptApp.value = app
         } else {
-            appsRepository.openApp(app)
+            launchApp(app)
         }
     }
 
     fun confirmPromptOpen() {
         val app = pendingPromptApp.value ?: return
         pendingPromptApp.value = null
-        appsRepository.openApp(app)
+        launchApp(app)
     }
 
     fun cancelPromptOpen() {

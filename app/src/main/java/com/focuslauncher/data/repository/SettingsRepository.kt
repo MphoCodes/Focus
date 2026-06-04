@@ -23,11 +23,11 @@ class SettingsRepository(context: Context) {
             hiddenAppIds = preferences[Keys.HIDDEN_APPS].orEmpty(),
             intentPromptAppIds = preferences[Keys.INTENT_PROMPT_APPS].orEmpty(),
             focusPauseSeconds = preferences[Keys.FOCUS_PAUSE_SECONDS] ?: 5,
-            usageAccessEnabled = preferences[Keys.USAGE_ACCESS_ENABLED] ?: false,
             localDataOnly = preferences[Keys.LOCAL_DATA_ONLY] ?: true,
             blackThemeEnabled = preferences[Keys.BLACK_THEME_ENABLED] ?: true,
             textSize = preferences[Keys.TEXT_SIZE] ?: "Standard",
-            appOrder = preferences[Keys.APP_ORDER] ?: "Alphabetical"
+            appOrder = preferences[Keys.APP_ORDER] ?: "Alphabetical",
+            appLaunchCounts = decodeLaunchCounts(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty())
         )
     }
 
@@ -51,10 +51,6 @@ class SettingsRepository(context: Context) {
         dataStore.edit { it[Keys.FOCUS_PAUSE_SECONDS] = seconds }
     }
 
-    suspend fun setUsageAccessEnabled(value: Boolean) {
-        dataStore.edit { it[Keys.USAGE_ACCESS_ENABLED] = value }
-    }
-
     suspend fun setLocalDataOnly(value: Boolean) {
         dataStore.edit { it[Keys.LOCAL_DATA_ONLY] = value }
     }
@@ -71,16 +67,42 @@ class SettingsRepository(context: Context) {
         dataStore.edit { it[Keys.APP_ORDER] = value }
     }
 
+    suspend fun incrementAppLaunchCount(packageName: String) {
+        dataStore.edit { preferences ->
+            val counts = decodeLaunchCounts(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()).toMutableMap()
+            counts[packageName] = (counts[packageName] ?: 0) + 1
+            preferences[Keys.APP_LAUNCH_COUNTS] = encodeLaunchCounts(counts)
+        }
+    }
+
+    private fun decodeLaunchCounts(encoded: Set<String>): Map<String, Int> {
+        return encoded.mapNotNull { entry ->
+            val separatorIndex = entry.lastIndexOf('=')
+            if (separatorIndex <= 0 || separatorIndex == entry.lastIndex) return@mapNotNull null
+
+            val packageName = entry.substring(0, separatorIndex)
+            val count = entry.substring(separatorIndex + 1).toIntOrNull() ?: return@mapNotNull null
+            packageName to count
+        }.toMap()
+    }
+
+    private fun encodeLaunchCounts(counts: Map<String, Int>): Set<String> {
+        return counts
+            .filterValues { it > 0 }
+            .map { (packageName, count) -> "$packageName=$count" }
+            .toSet()
+    }
+
     private object Keys {
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val FAVORITE_APPS = stringSetPreferencesKey("favorite_apps")
         val HIDDEN_APPS = stringSetPreferencesKey("hidden_apps")
         val INTENT_PROMPT_APPS = stringSetPreferencesKey("intent_prompt_apps")
         val FOCUS_PAUSE_SECONDS = intPreferencesKey("focus_pause_seconds")
-        val USAGE_ACCESS_ENABLED = booleanPreferencesKey("usage_access_enabled")
         val LOCAL_DATA_ONLY = booleanPreferencesKey("local_data_only")
         val BLACK_THEME_ENABLED = booleanPreferencesKey("black_theme_enabled")
         val TEXT_SIZE = stringPreferencesKey("text_size")
         val APP_ORDER = stringPreferencesKey("app_order")
+        val APP_LAUNCH_COUNTS = stringSetPreferencesKey("app_launch_counts")
     }
 }

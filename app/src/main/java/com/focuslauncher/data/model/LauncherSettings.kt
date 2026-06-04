@@ -6,9 +6,9 @@ data class LauncherSettings(
     val hiddenAppIds: Set<String> = emptySet(),
     val intentPromptAppIds: Set<String> = emptySet(),
     val focusPauseSeconds: Int = 5,
-    val usageAccessEnabled: Boolean = false,
     val localDataOnly: Boolean = true,
     val blackThemeEnabled: Boolean = true,
     val textSize: String = "Standard",
-    val appOrder: String = "Alphabetical"
+    val appOrder: String = "Alphabetical",
+    val appLaunchCounts: Map<String, Int> = emptyMap()
 )
