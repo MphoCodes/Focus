@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.focuslauncher.R
@@ -63,78 +64,99 @@ private val FocusMuted = Color(0xFF4E4E4E) // Darker gray for less contrast elem
 private val FocusDivider = Color(0xFF161616) // Subtle dividers
 private val FocusInput = Color(0xFF0F0F0F) // Lighter box for inputs
 
+private val LocalFocusBackground = androidx.compose.runtime.compositionLocalOf { Color(0xFF000000) }
+private val LocalTextSizeMultiplier = androidx.compose.runtime.compositionLocalOf { 1.0f }
+
 @Composable
 fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pendingPromptApp = uiState.pendingPromptApp
 
-    Surface(color = FocusBackground, modifier = Modifier.fillMaxSize()) {
-        when {
-            pendingPromptApp != null -> IntentPromptScreen(
-                uiState = uiState,
-                app = pendingPromptApp,
-                onContinue = viewModel::confirmPromptOpen,
-                onCancel = viewModel::cancelPromptOpen
-            )
+    val currentBackground = if (uiState.settings.blackThemeEnabled) Color(0xFF000000) else Color(0xFF151515)
+    val currentTextMultiplier = when (uiState.settings.textSize) {
+        "Small" -> 0.85f
+        "Standard" -> 1.0f
+        "Large" -> 1.15f
+        else -> 1.0f
+    }
 
-            !uiState.settings.onboardingComplete -> OnboardingScreen(
-                onGetStarted = viewModel::completeOnboarding
-            )
-
-            else -> when (uiState.screen) {
-                LauncherScreen.Home -> HomeScreen(
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalFocusBackground provides currentBackground,
+        LocalTextSizeMultiplier provides currentTextMultiplier
+    ) {
+        Surface(color = LocalFocusBackground.current, modifier = Modifier.fillMaxSize()) {
+            when {
+                pendingPromptApp != null -> IntentPromptScreen(
                     uiState = uiState,
-                    onSearchChange = viewModel::updateSearch,
-                    onOpenApp = viewModel::requestOpenApp,
-                    onNavigate = viewModel::navigateTo
+                    app = pendingPromptApp,
+                    onContinue = viewModel::confirmPromptOpen,
+                    onCancel = viewModel::cancelPromptOpen
                 )
 
-                LauncherScreen.Apps -> AppsScreen(
-                    uiState = uiState,
-                    onSearchChange = viewModel::updateSearch,
-                    onOpenApp = viewModel::requestOpenApp,
-                    onNavigate = viewModel::navigateTo
+                !uiState.settings.onboardingComplete -> OnboardingScreen(
+                    onGetStarted = viewModel::completeOnboarding
                 )
 
-                LauncherScreen.Settings -> SettingsScreen(
-                    uiState = uiState,
-                    onNavigate = viewModel::navigateTo,
-                    onCyclePauseDuration = viewModel::cyclePauseDuration
-                )
+                else -> when (uiState.screen) {
+                    LauncherScreen.Home -> HomeScreen(
+                        uiState = uiState,
+                        onSearchChange = viewModel::updateSearch,
+                        onOpenApp = viewModel::requestOpenApp,
+                        onNavigate = viewModel::navigateTo
+                    )
 
-                LauncherScreen.Favorites -> AppSelectorScreen(
-                    title = stringResource(R.string.favorites_selector_title),
-                    description = stringResource(R.string.favorites_selector_desc),
-                    uiState = uiState,
-                    selectedIds = uiState.settings.favoriteAppIds,
-                    onSearchChange = viewModel::updateSearch,
-                    onToggleApp = viewModel::toggleFavorite,
-                    onNavigate = viewModel::navigateTo
-                )
+                    LauncherScreen.Apps -> AppsScreen(
+                        uiState = uiState,
+                        onSearchChange = viewModel::updateSearch,
+                        onOpenApp = viewModel::requestOpenApp,
+                        onNavigate = viewModel::navigateTo
+                    )
 
-                LauncherScreen.Hidden -> AppSelectorScreen(
-                    title = stringResource(R.string.hidden_selector_title),
-                    description = stringResource(R.string.hidden_selector_desc),
-                    uiState = uiState,
-                    selectedIds = uiState.settings.hiddenAppIds,
-                    includeHidden = true,
-                    onSearchChange = viewModel::updateSearch,
-                    onToggleApp = viewModel::toggleHidden,
-                    onNavigate = viewModel::navigateTo
-                )
+                    LauncherScreen.Settings -> SettingsScreen(
+                        uiState = uiState,
+                        onNavigate = viewModel::navigateTo,
+                        onCyclePauseDuration = viewModel::cyclePauseDuration,
+                        onCycleAppOrder = viewModel::cycleAppOrder,
+                        onToggleUsageAccess = viewModel::toggleUsageAccessEnabled,
+                        onToggleLocalDataOnly = viewModel::toggleLocalDataOnly,
+                        onToggleBlackTheme = viewModel::toggleBlackThemeEnabled,
+                        onCycleTextSize = viewModel::cycleTextSize
+                    )
 
-                LauncherScreen.FocusMode -> FocusModeScreen(
-                    uiState = uiState,
-                    onSearchChange = viewModel::updateSearch,
-                    onToggleApp = viewModel::toggleIntentPrompt,
-                    onCyclePauseDuration = viewModel::cyclePauseDuration,
-                    onNavigate = viewModel::navigateTo
-                )
+                    LauncherScreen.Favorites -> AppSelectorScreen(
+                        title = stringResource(R.string.favorites_selector_title),
+                        description = stringResource(R.string.favorites_selector_desc),
+                        uiState = uiState,
+                        selectedIds = uiState.settings.favoriteAppIds,
+                        onSearchChange = viewModel::updateSearch,
+                        onToggleApp = viewModel::toggleFavorite,
+                        onNavigate = viewModel::navigateTo
+                    )
 
-                LauncherScreen.DefaultHome -> DefaultHomeScreen(
-                    onOpenSettings = viewModel::openDefaultHomeSettings,
-                    onNavigate = viewModel::navigateTo
-                )
+                    LauncherScreen.Hidden -> AppSelectorScreen(
+                        title = stringResource(R.string.hidden_selector_title),
+                        description = stringResource(R.string.hidden_selector_desc),
+                        uiState = uiState,
+                        selectedIds = uiState.settings.hiddenAppIds,
+                        includeHidden = true,
+                        onSearchChange = viewModel::updateSearch,
+                        onToggleApp = viewModel::toggleHidden,
+                        onNavigate = viewModel::navigateTo
+                    )
+
+                    LauncherScreen.FocusMode -> FocusModeScreen(
+                        uiState = uiState,
+                        onSearchChange = viewModel::updateSearch,
+                        onToggleApp = viewModel::toggleIntentPrompt,
+                        onCyclePauseDuration = viewModel::cyclePauseDuration,
+                        onNavigate = viewModel::navigateTo
+                    )
+
+                    LauncherScreen.DefaultHome -> DefaultHomeScreen(
+                        onOpenSettings = viewModel::openDefaultHomeSettings,
+                        onNavigate = viewModel::navigateTo
+                    )
+                }
             }
         }
     }
@@ -145,7 +167,7 @@ private fun OnboardingScreen(onGetStarted: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(FocusBackground)
+            .background(LocalFocusBackground.current)
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 28.dp, vertical = 24.dp)
@@ -313,7 +335,12 @@ private fun AppsScreen(
 private fun SettingsScreen(
     uiState: LauncherUiState,
     onNavigate: (LauncherScreen) -> Unit,
-    onCyclePauseDuration: () -> Unit
+    onCyclePauseDuration: () -> Unit,
+    onCycleAppOrder: () -> Unit,
+    onToggleUsageAccess: () -> Unit,
+    onToggleLocalDataOnly: () -> Unit,
+    onToggleBlackTheme: () -> Unit,
+    onCycleTextSize: () -> Unit
 ) {
     FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.Settings, onNavigate = onNavigate) {
         LazyColumn(Modifier.fillMaxSize()) {
@@ -328,7 +355,11 @@ private fun SettingsScreen(
                 SettingsSection(stringResource(R.string.settings_section_home_screen))
                 SettingRow(stringResource(R.string.settings_fav_apps), onClick = { onNavigate(LauncherScreen.Favorites) })
                 SettingRow(stringResource(R.string.settings_hidden_apps), onClick = { onNavigate(LauncherScreen.Hidden) })
-                SettingRow(stringResource(R.string.settings_app_order), value = stringResource(R.string.settings_app_order_val))
+                SettingRow(
+                    label = stringResource(R.string.settings_app_order),
+                    value = uiState.settings.appOrder,
+                    onClick = onCycleAppOrder
+                )
                 SettingRow(stringResource(R.string.settings_set_default), onClick = { onNavigate(LauncherScreen.DefaultHome) })
                 Spacer(Modifier.height(28.dp))
 
@@ -347,13 +378,29 @@ private fun SettingsScreen(
                 Spacer(Modifier.height(28.dp))
 
                 SettingsSection(stringResource(R.string.settings_section_privacy))
-                ToggleRow(stringResource(R.string.settings_usage_access), selected = false)
-                ToggleRow(stringResource(R.string.settings_local_data_only), selected = true)
+                ToggleRow(
+                    label = stringResource(R.string.settings_usage_access),
+                    selected = uiState.settings.usageAccessEnabled,
+                    onClick = onToggleUsageAccess
+                )
+                ToggleRow(
+                    label = stringResource(R.string.settings_local_data_only),
+                    selected = uiState.settings.localDataOnly,
+                    onClick = onToggleLocalDataOnly
+                )
                 Spacer(Modifier.height(28.dp))
 
                 SettingsSection(stringResource(R.string.settings_section_appearance))
-                ToggleRow(stringResource(R.string.settings_black_theme), selected = true)
-                SettingRow(stringResource(R.string.settings_text_size), value = stringResource(R.string.settings_text_size_val))
+                ToggleRow(
+                    label = stringResource(R.string.settings_black_theme),
+                    selected = uiState.settings.blackThemeEnabled,
+                    onClick = onToggleBlackTheme
+                )
+                SettingRow(
+                    label = stringResource(R.string.settings_text_size),
+                    value = uiState.settings.textSize,
+                    onClick = onCycleTextSize
+                )
                 Spacer(Modifier.height(28.dp))
 
                 SettingsSection(stringResource(R.string.settings_section_about))
@@ -539,7 +586,7 @@ private fun IntentPromptScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(FocusBackground)
+            .background(LocalFocusBackground.current)
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 24.dp, vertical = 20.dp)
@@ -604,7 +651,7 @@ private fun FocusShell(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(FocusBackground)
+            .background(LocalFocusBackground.current)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
@@ -751,7 +798,7 @@ private fun BottomNav(selected: LauncherScreen, onNavigate: (LauncherScreen) -> 
         modifier = Modifier
             .fillMaxWidth()
             .height(72.dp)
-            .background(FocusBackground)
+            .background(LocalFocusBackground.current)
             .border(BorderStroke(0.5.dp, FocusDivider))
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -813,11 +860,12 @@ private fun NavItem(
 
 @Composable
 private fun SearchInput(value: String, placeholder: String, onValueChange: (String) -> Unit) {
+    val multiplier = LocalTextSizeMultiplier.current
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
         singleLine = true,
-        textStyle = TextStyle(color = FocusPrimary, fontSize = 14.sp, fontFamily = FontFamily.Monospace),
+        textStyle = TextStyle(color = FocusPrimary, fontSize = (14 * multiplier).sp, fontFamily = FontFamily.Monospace),
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
@@ -831,7 +879,7 @@ private fun SearchInput(value: String, placeholder: String, onValueChange: (Stri
                             text = placeholder,
                             color = FocusMuted,
                             fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp
+                            fontSize = (12 * multiplier).sp
                         )
                     }
                     innerTextField()
@@ -914,11 +962,12 @@ private fun SettingRow(label: String, value: String? = null, onClick: (() -> Uni
 }
 
 @Composable
-private fun ToggleRow(label: String, selected: Boolean) {
+private fun ToggleRow(label: String, selected: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp),
+            .height(48.dp)
+            .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(text = label, color = FocusPrimary, fontSize = 14.sp, modifier = Modifier.weight(1f))
@@ -1033,6 +1082,66 @@ private fun MutedEmptyText(text: String) {
         color = FocusMuted,
         fontSize = 13.sp,
         modifier = Modifier.padding(vertical = 10.dp)
+    )
+}
+
+@Composable
+private fun Text(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontSize: TextUnit = TextUnit.Unspecified,
+    fontStyle: androidx.compose.ui.text.font.FontStyle? = null,
+    fontWeight: FontWeight? = null,
+    fontFamily: FontFamily? = null,
+    letterSpacing: TextUnit = TextUnit.Unspecified,
+    textDecoration: androidx.compose.ui.text.style.TextDecoration? = null,
+    textAlign: TextAlign? = null,
+    lineHeight: TextUnit = TextUnit.Unspecified,
+    overflow: TextOverflow = TextOverflow.Clip,
+    softWrap: Boolean = true,
+    maxLines: Int = Int.MAX_VALUE,
+    minLines: Int = 1,
+    onTextLayout: ((androidx.compose.ui.text.TextLayoutResult) -> Unit)? = null,
+    style: TextStyle = androidx.compose.material3.LocalTextStyle.current
+) {
+    val multiplier = LocalTextSizeMultiplier.current
+    val scaledFontSize = if (fontSize.isSp) {
+        (fontSize.value * multiplier).sp
+    } else {
+        fontSize
+    }
+    val scaledLineHeight = if (lineHeight.isSp) {
+        (lineHeight.value * multiplier).sp
+    } else {
+        lineHeight
+    }
+    val scaledStyle = if (style.fontSize.isSp) {
+        style.copy(
+            fontSize = (style.fontSize.value * multiplier).sp,
+            lineHeight = if (style.lineHeight.isSp) (style.lineHeight.value * multiplier).sp else style.lineHeight
+        )
+    } else {
+        style
+    }
+    androidx.compose.material3.Text(
+        text = text,
+        modifier = modifier,
+        color = color,
+        fontSize = scaledFontSize,
+        fontStyle = fontStyle,
+        fontWeight = fontWeight,
+        fontFamily = fontFamily,
+        letterSpacing = letterSpacing,
+        textDecoration = textDecoration,
+        textAlign = textAlign,
+        lineHeight = scaledLineHeight,
+        overflow = overflow,
+        softWrap = softWrap,
+        maxLines = maxLines,
+        minLines = minLines,
+        onTextLayout = onTextLayout,
+        style = scaledStyle
     )
 }
 
