@@ -1,5 +1,6 @@
 package com.focuslauncher.ui
 
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
