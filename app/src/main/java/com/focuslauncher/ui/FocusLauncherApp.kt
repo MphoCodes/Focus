@@ -30,6 +30,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,10 +41,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.stringResource
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -80,82 +87,163 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
         else -> 1.0f
     }
 
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val coroutineScope = rememberCoroutineScope()
+
     androidx.compose.runtime.CompositionLocalProvider(
         LocalFocusBackground provides currentBackground,
         LocalTextSizeMultiplier provides currentTextMultiplier
     ) {
-        Surface(color = LocalFocusBackground.current, modifier = Modifier.fillMaxSize()) {
-            when {
-                pendingPromptApp != null -> IntentPromptScreen(
-                    uiState = uiState,
-                    app = pendingPromptApp,
-                    onContinue = viewModel::confirmPromptOpen,
-                    onCancel = viewModel::cancelPromptOpen
-                )
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet(
+                    drawerContainerColor = LocalFocusBackground.current,
+                    drawerContentColor = FocusPrimary,
+                    drawerShape = RectangleShape,
+                    drawerTonalElevation = 0.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(LocalFocusBackground.current)
+                            .statusBarsPadding()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 24.dp, vertical = 24.dp)
+                    ) {
+                        Text(
+                            text = "FOCUS",
+                            color = FocusPrimary,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = (18f * LocalTextSizeMultiplier.current).sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 3.sp,
+                            modifier = Modifier.padding(vertical = 16.dp)
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                !uiState.settings.onboardingComplete -> OnboardingScreen(
-                    onGetStarted = viewModel::completeOnboarding
-                )
+                        // Custom thin divider
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(0.5.dp)
+                                .background(FocusDivider)
+                        )
 
-                else -> when (uiState.screen) {
-                    LauncherScreen.Home -> HomeScreen(
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        val navItems = listOf(
+                            "Home" to LauncherScreen.Home,
+                            "Apps" to LauncherScreen.Apps,
+                            "Settings" to LauncherScreen.Settings,
+                            "Favourite apps" to LauncherScreen.Favorites,
+                            "Hidden apps" to LauncherScreen.Hidden,
+                            "Focus mode" to LauncherScreen.FocusMode,
+                            "Set as default" to LauncherScreen.DefaultHome
+                        )
+
+                        navItems.forEach { (label, screen) ->
+                            Text(
+                                text = label,
+                                color = if (uiState.screen == screen) FocusPrimary else FocusSecondary,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = (14f * LocalTextSizeMultiplier.current).sp,
+                                fontWeight = if (uiState.screen == screen) FontWeight.Bold else FontWeight.Normal,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        viewModel.navigateTo(screen)
+                                        coroutineScope.launch { drawerState.close() }
+                                    }
+                                    .padding(vertical = 14.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        ) {
+            Surface(color = LocalFocusBackground.current, modifier = Modifier.fillMaxSize()) {
+                when {
+                    pendingPromptApp != null -> IntentPromptScreen(
                         uiState = uiState,
-                        onSearchChange = viewModel::updateSearch,
-                        onOpenApp = viewModel::requestOpenApp,
-                        onNavigate = viewModel::navigateTo
+                        app = pendingPromptApp,
+                        onContinue = viewModel::confirmPromptOpen,
+                        onCancel = viewModel::cancelPromptOpen,
+                        onMenuClick = { coroutineScope.launch { drawerState.open() } }
                     )
 
-                    LauncherScreen.Apps -> AppsScreen(
-                        uiState = uiState,
-                        onSearchChange = viewModel::updateSearch,
-                        onOpenApp = viewModel::requestOpenApp,
-                        onNavigate = viewModel::navigateTo
+                    !uiState.settings.onboardingComplete -> OnboardingScreen(
+                        onGetStarted = viewModel::completeOnboarding,
+                        onMenuClick = { coroutineScope.launch { drawerState.open() } }
                     )
 
-                    LauncherScreen.Settings -> SettingsScreen(
-                        uiState = uiState,
-                        onNavigate = viewModel::navigateTo,
-                        onCyclePauseDuration = viewModel::cyclePauseDuration,
-                        onCycleAppOrder = viewModel::cycleAppOrder,
-                        onToggleUsageAccess = viewModel::toggleUsageAccessEnabled,
-                        onToggleLocalDataOnly = viewModel::toggleLocalDataOnly,
-                        onToggleBlackTheme = viewModel::toggleBlackThemeEnabled,
-                        onCycleTextSize = viewModel::cycleTextSize
-                    )
+                    else -> when (uiState.screen) {
+                        LauncherScreen.Home -> HomeScreen(
+                            uiState = uiState,
+                            onSearchChange = viewModel::updateSearch,
+                            onOpenApp = viewModel::requestOpenApp,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
 
-                    LauncherScreen.Favorites -> AppSelectorScreen(
-                        title = stringResource(R.string.favorites_selector_title),
-                        description = stringResource(R.string.favorites_selector_desc),
-                        uiState = uiState,
-                        selectedIds = uiState.settings.favoriteAppIds,
-                        onSearchChange = viewModel::updateSearch,
-                        onToggleApp = viewModel::toggleFavorite,
-                        onNavigate = viewModel::navigateTo
-                    )
+                        LauncherScreen.Apps -> AppsScreen(
+                            uiState = uiState,
+                            onSearchChange = viewModel::updateSearch,
+                            onOpenApp = viewModel::requestOpenApp,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
 
-                    LauncherScreen.Hidden -> AppSelectorScreen(
-                        title = stringResource(R.string.hidden_selector_title),
-                        description = stringResource(R.string.hidden_selector_desc),
-                        uiState = uiState,
-                        selectedIds = uiState.settings.hiddenAppIds,
-                        includeHidden = true,
-                        onSearchChange = viewModel::updateSearch,
-                        onToggleApp = viewModel::toggleHidden,
-                        onNavigate = viewModel::navigateTo
-                    )
+                        LauncherScreen.Settings -> SettingsScreen(
+                            uiState = uiState,
+                            onNavigate = viewModel::navigateTo,
+                            onCyclePauseDuration = viewModel::cyclePauseDuration,
+                            onCycleAppOrder = viewModel::cycleAppOrder,
+                            onToggleUsageAccess = viewModel::toggleUsageAccessEnabled,
+                            onToggleLocalDataOnly = viewModel::toggleLocalDataOnly,
+                            onToggleBlackTheme = viewModel::toggleBlackThemeEnabled,
+                            onCycleTextSize = viewModel::cycleTextSize,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
 
-                    LauncherScreen.FocusMode -> FocusModeScreen(
-                        uiState = uiState,
-                        onSearchChange = viewModel::updateSearch,
-                        onToggleApp = viewModel::toggleIntentPrompt,
-                        onCyclePauseDuration = viewModel::cyclePauseDuration,
-                        onNavigate = viewModel::navigateTo
-                    )
+                        LauncherScreen.Favorites -> AppSelectorScreen(
+                            title = stringResource(R.string.favorites_selector_title),
+                            description = stringResource(R.string.favorites_selector_desc),
+                            uiState = uiState,
+                            selectedIds = uiState.settings.favoriteAppIds,
+                            onSearchChange = viewModel::updateSearch,
+                            onToggleApp = viewModel::toggleFavorite,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
 
-                    LauncherScreen.DefaultHome -> DefaultHomeScreen(
-                        onOpenSettings = viewModel::openDefaultHomeSettings,
-                        onNavigate = viewModel::navigateTo
-                    )
+                        LauncherScreen.Hidden -> AppSelectorScreen(
+                            title = stringResource(R.string.hidden_selector_title),
+                            description = stringResource(R.string.hidden_selector_desc),
+                            uiState = uiState,
+                            selectedIds = uiState.settings.hiddenAppIds,
+                            includeHidden = true,
+                            onSearchChange = viewModel::updateSearch,
+                            onToggleApp = viewModel::toggleHidden,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.FocusMode -> FocusModeScreen(
+                            uiState = uiState,
+                            onSearchChange = viewModel::updateSearch,
+                            onToggleApp = viewModel::toggleIntentPrompt,
+                            onCyclePauseDuration = viewModel::cyclePauseDuration,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.DefaultHome -> DefaultHomeScreen(
+                            onOpenSettings = viewModel::openDefaultHomeSettings,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+                    }
                 }
             }
         }
@@ -163,7 +251,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
 }
 
 @Composable
-private fun OnboardingScreen(onGetStarted: () -> Unit) {
+private fun OnboardingScreen(onGetStarted: () -> Unit, onMenuClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -172,7 +260,7 @@ private fun OnboardingScreen(onGetStarted: () -> Unit) {
             .navigationBarsPadding()
             .padding(horizontal = 28.dp, vertical = 24.dp)
     ) {
-        TopMark()
+        TopMark(onMenuClick = onMenuClick)
         Spacer(Modifier.height(36.dp))
         Box(
             modifier = Modifier
@@ -230,9 +318,10 @@ private fun HomeScreen(
     uiState: LauncherUiState,
     onSearchChange: (String) -> Unit,
     onOpenApp: (InstalledApp) -> Unit,
-    onNavigate: (LauncherScreen) -> Unit
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
 ) {
-    FocusShell(selected = LauncherScreen.Home, selectedScreen = LauncherScreen.Home, onNavigate = onNavigate) {
+    FocusShell(selected = LauncherScreen.Home, selectedScreen = LauncherScreen.Home, onNavigate = onNavigate, onMenuClick = onMenuClick) {
         var now by remember { mutableStateOf(LocalDateTime.now()) }
         LaunchedEffect(Unit) {
             while (true) {
@@ -300,9 +389,10 @@ private fun AppsScreen(
     uiState: LauncherUiState,
     onSearchChange: (String) -> Unit,
     onOpenApp: (InstalledApp) -> Unit,
-    onNavigate: (LauncherScreen) -> Unit
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
 ) {
-    FocusShell(selected = LauncherScreen.Apps, selectedScreen = LauncherScreen.Apps, onNavigate = onNavigate) {
+    FocusShell(selected = LauncherScreen.Apps, selectedScreen = LauncherScreen.Apps, onNavigate = onNavigate, onMenuClick = onMenuClick) {
         Column(Modifier.fillMaxSize()) {
             Text(
                 text = stringResource(R.string.apps_title),
@@ -340,9 +430,10 @@ private fun SettingsScreen(
     onToggleUsageAccess: () -> Unit,
     onToggleLocalDataOnly: () -> Unit,
     onToggleBlackTheme: () -> Unit,
-    onCycleTextSize: () -> Unit
+    onCycleTextSize: () -> Unit,
+    onMenuClick: () -> Unit
 ) {
-    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.Settings, onNavigate = onNavigate) {
+    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.Settings, onNavigate = onNavigate, onMenuClick = onMenuClick) {
         LazyColumn(Modifier.fillMaxSize()) {
             item {
                 Text(
@@ -428,9 +519,10 @@ private fun AppSelectorScreen(
     includeHidden: Boolean = false,
     onSearchChange: (String) -> Unit,
     onToggleApp: (InstalledApp) -> Unit,
-    onNavigate: (LauncherScreen) -> Unit
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
 ) {
-    FocusShell(selected = LauncherScreen.Apps, selectedScreen = LauncherScreen.Apps, showBack = true, onNavigate = onNavigate) {
+    FocusShell(selected = LauncherScreen.Apps, selectedScreen = LauncherScreen.Apps, showBack = true, onNavigate = onNavigate, onMenuClick = onMenuClick) {
         Column(Modifier.fillMaxSize()) {
             Text(title, color = FocusPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
@@ -466,9 +558,10 @@ private fun FocusModeScreen(
     onSearchChange: (String) -> Unit,
     onToggleApp: (InstalledApp) -> Unit,
     onCyclePauseDuration: () -> Unit,
-    onNavigate: (LauncherScreen) -> Unit
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
 ) {
-    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.FocusMode, showBack = true, onNavigate = onNavigate) {
+    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.FocusMode, showBack = true, onNavigate = onNavigate, onMenuClick = onMenuClick) {
         val apps = selectorApps(uiState, includeHidden = true)
         LazyColumn(Modifier.fillMaxSize()) {
             item {
@@ -535,9 +628,10 @@ private fun FocusModeScreen(
 @Composable
 private fun DefaultHomeScreen(
     onOpenSettings: () -> Unit,
-    onNavigate: (LauncherScreen) -> Unit
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
 ) {
-    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.DefaultHome, showBack = true, onNavigate = onNavigate) {
+    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.DefaultHome, showBack = true, onNavigate = onNavigate, onMenuClick = onMenuClick) {
         Column(Modifier.fillMaxSize()) {
             Text(
                 text = stringResource(R.string.default_home_title),
@@ -570,7 +664,8 @@ private fun IntentPromptScreen(
     uiState: LauncherUiState,
     app: InstalledApp,
     onContinue: () -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onMenuClick: () -> Unit
 ) {
     var remaining by remember(app.id, uiState.settings.focusPauseSeconds) {
         mutableIntStateOf(uiState.settings.focusPauseSeconds)
@@ -591,7 +686,7 @@ private fun IntentPromptScreen(
             .navigationBarsPadding()
             .padding(horizontal = 24.dp, vertical = 20.dp)
     ) {
-        TopMark()
+        TopMark(onMenuClick = onMenuClick)
         Spacer(Modifier.height(72.dp))
         Text(
             text = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm")),
@@ -646,6 +741,7 @@ private fun FocusShell(
     selectedScreen: LauncherScreen,
     showBack: Boolean = false,
     onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
     Column(
@@ -658,7 +754,8 @@ private fun FocusShell(
         Header(
             selectedScreen = selectedScreen,
             showBack = showBack,
-            onBack = { onNavigate(LauncherScreen.Settings) }
+            onBack = { onNavigate(LauncherScreen.Settings) },
+            onMenuClick = onMenuClick
         )
         Box(
             modifier = Modifier
@@ -675,7 +772,8 @@ private fun FocusShell(
 private fun Header(
     selectedScreen: LauncherScreen,
     showBack: Boolean,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onMenuClick: () -> Unit
 ) {
     val systemTime = remember { mutableStateOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("h:mm a"))) }
     if (selectedScreen == LauncherScreen.Apps) {
@@ -709,7 +807,9 @@ private fun Header(
                 imageVector = Icons.Default.Menu,
                 contentDescription = "Menu",
                 tint = FocusPrimary,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier
+                    .size(18.dp)
+                    .clickable { onMenuClick() }
             )
         } else {
             // Standard Screen header: hamburger menu or back button on left, "FOCUS" center, drawer time on right
@@ -731,7 +831,9 @@ private fun Header(
                         imageVector = Icons.Default.Menu,
                         contentDescription = "Menu",
                         tint = FocusPrimary,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clickable { onMenuClick() }
                     )
                 }
             }
@@ -765,7 +867,7 @@ private fun Header(
 }
 
 @Composable
-private fun TopMark() {
+private fun TopMark(onMenuClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -776,7 +878,9 @@ private fun TopMark() {
             imageVector = Icons.Default.Menu,
             contentDescription = "Menu",
             tint = FocusPrimary,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier
+                .size(18.dp)
+                .clickable { onMenuClick() }
         )
         Text(
             text = "FOCUS",
