@@ -10,5 +10,6 @@ data class LauncherSettings(
     val blackThemeEnabled: Boolean = true,
     val textSize: String = "Standard",
     val appOrder: String = "Alphabetical",
-    val appLaunchCounts: Map<String, Int> = emptyMap()
+    val appLaunchCounts: Map<String, Int> = emptyMap(),
+    val intentLogs: List<String> = emptyList()
 )

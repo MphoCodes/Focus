@@ -27,7 +27,8 @@ class SettingsRepository(context: Context) {
             blackThemeEnabled = preferences[Keys.BLACK_THEME_ENABLED] ?: true,
             textSize = preferences[Keys.TEXT_SIZE] ?: "Standard",
             appOrder = preferences[Keys.APP_ORDER] ?: "Alphabetical",
-            appLaunchCounts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty())
+            appLaunchCounts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()),
+            intentLogs = preferences[Keys.INTENT_LOGS]?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList()
         )
     }
 
@@ -75,6 +76,14 @@ class SettingsRepository(context: Context) {
         }
     }
 
+    suspend fun addIntentLog(log: String) {
+        dataStore.edit { preferences ->
+            val logs = (preferences[Keys.INTENT_LOGS]?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList()).toMutableList()
+            logs.add(0, log)
+            preferences[Keys.INTENT_LOGS] = logs.take(50).joinToString("|||")
+        }
+    }
+
     private object Keys {
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val FAVORITE_APPS = stringSetPreferencesKey("favorite_apps")
@@ -86,6 +95,7 @@ class SettingsRepository(context: Context) {
         val TEXT_SIZE = stringPreferencesKey("text_size")
         val APP_ORDER = stringPreferencesKey("app_order")
         val APP_LAUNCH_COUNTS = stringSetPreferencesKey("app_launch_counts")
+        val INTENT_LOGS = stringPreferencesKey("intent_logs")
     }
 }
 
