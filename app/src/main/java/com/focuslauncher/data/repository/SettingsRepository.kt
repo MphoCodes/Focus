@@ -28,7 +28,8 @@ class SettingsRepository(context: Context) {
             textSize = preferences[Keys.TEXT_SIZE] ?: "Standard",
             appOrder = preferences[Keys.APP_ORDER] ?: "Alphabetical",
             themeAccent = preferences[Keys.THEME_ACCENT] ?: "E-Ink Grey",
-            appLaunchCounts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty())
+            appLaunchCounts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()),
+            appDeflectionCounts = LaunchCountSerializer.decode(preferences[Keys.APP_DEFLECTION_COUNTS].orEmpty())
         )
     }
 
@@ -80,6 +81,14 @@ class SettingsRepository(context: Context) {
         }
     }
 
+    suspend fun incrementAppDeflectionCount(packageName: String) {
+        dataStore.edit { preferences ->
+            val counts = LaunchCountSerializer.decode(preferences[Keys.APP_DEFLECTION_COUNTS].orEmpty()).toMutableMap()
+            counts[packageName] = (counts[packageName] ?: 0) + 1
+            preferences[Keys.APP_DEFLECTION_COUNTS] = LaunchCountSerializer.encode(counts)
+        }
+    }
+
     private object Keys {
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val FAVORITE_APPS = stringSetPreferencesKey("favorite_apps")
@@ -92,6 +101,7 @@ class SettingsRepository(context: Context) {
         val APP_ORDER = stringPreferencesKey("app_order")
         val THEME_ACCENT = stringPreferencesKey("theme_accent")
         val APP_LAUNCH_COUNTS = stringSetPreferencesKey("app_launch_counts")
+        val APP_DEFLECTION_COUNTS = stringSetPreferencesKey("app_deflection_counts")
     }
 }
 

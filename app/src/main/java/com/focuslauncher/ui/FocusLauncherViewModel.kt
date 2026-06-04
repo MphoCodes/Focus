@@ -22,7 +22,8 @@ enum class LauncherScreen {
     Favorites,
     Hidden,
     FocusMode,
-    DefaultHome
+    DefaultHome,
+    Stats
 }
 
 data class LauncherUiState(
@@ -230,7 +231,11 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun cancelPromptOpen() {
+        val app = pendingPromptApp.value ?: return
         pendingPromptApp.value = null
+        viewModelScope.launch {
+            settingsRepository.incrementAppDeflectionCount(app.packageName)
+        }
     }
 
     fun openDefaultHomeSettings() {

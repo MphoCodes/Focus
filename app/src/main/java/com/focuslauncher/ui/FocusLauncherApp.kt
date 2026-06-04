@@ -150,7 +150,8 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             "Favourite apps" to LauncherScreen.Favorites,
                             "Hidden apps" to LauncherScreen.Hidden,
                             "Focus mode" to LauncherScreen.FocusMode,
-                            "Set as default" to LauncherScreen.DefaultHome
+                            "Set as default" to LauncherScreen.DefaultHome,
+                            "Stats" to LauncherScreen.Stats
                         )
 
                         navItems.forEach { (label, screen) ->
@@ -252,6 +253,11 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                         LauncherScreen.DefaultHome -> DefaultHomeScreen(
                             onOpenSettings = viewModel::openDefaultHomeSettings,
                             onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.Stats -> StatsScreen(
+                            uiState = uiState,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
                     }
@@ -1290,3 +1296,53 @@ private fun selectorApps(uiState: LauncherUiState, includeHidden: Boolean): List
 }
 
 private fun appVersionText(): String = "1.0.0"
+
+@Composable
+private fun StatsScreen(
+    uiState: LauncherUiState,
+    onMenuClick: () -> Unit
+) {
+    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.Stats, showBack = true, onNavigate = {}, onMenuClick = onMenuClick) {
+        LazyColumn(Modifier.fillMaxSize()) {
+            item {
+                Text(
+                    text = "DIGITAL STOICISM",
+                    color = FocusPrimary,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Reflect on your choices.",
+                    color = FocusMuted,
+                    fontSize = 12.sp
+                )
+                Spacer(Modifier.height(28.dp))
+                
+                SettingsSection("FRICTION DEFLECTIONS")
+                val deflections = uiState.settings.appDeflectionCounts
+                if (deflections.isEmpty()) {
+                    MutedEmptyText("No deflections yet.")
+                } else {
+                    deflections.entries.sortedByDescending { it.value }.forEach { (pkg, count) ->
+                        val label = uiState.installedApps.find { it.packageName == pkg }?.label ?: pkg
+                        SettingRow(label = label, value = count.toString())
+                    }
+                }
+                Spacer(Modifier.height(28.dp))
+                
+                SettingsSection("LAUNCH VELOCITY")
+                val launches = uiState.settings.appLaunchCounts
+                if (launches.isEmpty()) {
+                    MutedEmptyText("No launches yet.")
+                } else {
+                    launches.entries.sortedByDescending { it.value }.forEach { (pkg, count) ->
+                        val label = uiState.installedApps.find { it.packageName == pkg }?.label ?: pkg
+                        SettingRow(label = label, value = count.toString())
+                    }
+                }
+                Spacer(Modifier.height(28.dp))
+            }
+        }
+    }
+}
