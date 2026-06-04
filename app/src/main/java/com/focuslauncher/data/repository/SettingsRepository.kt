@@ -29,7 +29,8 @@ class SettingsRepository(context: Context) {
             appOrder = preferences[Keys.APP_ORDER] ?: "Alphabetical",
             themeAccent = preferences[Keys.THEME_ACCENT] ?: "E-Ink Grey",
             appLaunchCounts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()),
-            appDeflectionCounts = LaunchCountSerializer.decode(preferences[Keys.APP_DEFLECTION_COUNTS].orEmpty())
+            appDeflectionCounts = LaunchCountSerializer.decode(preferences[Keys.APP_DEFLECTION_COUNTS].orEmpty()),
+            intentLogs = preferences[Keys.INTENT_LOGS]?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList()
         )
     }
 
@@ -89,6 +90,14 @@ class SettingsRepository(context: Context) {
         }
     }
 
+    suspend fun addIntentLog(log: String) {
+        dataStore.edit { preferences ->
+            val logs = (preferences[Keys.INTENT_LOGS]?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList()).toMutableList()
+            logs.add(0, log)
+            preferences[Keys.INTENT_LOGS] = logs.take(50).joinToString("|||")
+        }
+    }
+
     private object Keys {
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val FAVORITE_APPS = stringSetPreferencesKey("favorite_apps")
@@ -102,6 +111,7 @@ class SettingsRepository(context: Context) {
         val THEME_ACCENT = stringPreferencesKey("theme_accent")
         val APP_LAUNCH_COUNTS = stringSetPreferencesKey("app_launch_counts")
         val APP_DEFLECTION_COUNTS = stringSetPreferencesKey("app_deflection_counts")
+        val INTENT_LOGS = stringPreferencesKey("intent_logs")
     }
 }
 
