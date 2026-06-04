@@ -90,10 +90,21 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
 
+    val baseModifier = if (uiState.settings.grayscaleEnabled) {
+        Modifier.graphicsLayer {
+            colorFilter = androidx.compose.ui.graphics.ColorFilter.colorMatrix(
+                androidx.compose.ui.graphics.ColorMatrix().apply { setToSaturation(0f) }
+            )
+        }
+    } else {
+        Modifier
+    }
+
     androidx.compose.runtime.CompositionLocalProvider(
         LocalFocusBackground provides currentBackground,
         LocalTextSizeMultiplier provides currentTextMultiplier
     ) {
+        Box(modifier = baseModifier.fillMaxSize()) {
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
@@ -182,6 +193,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             uiState = uiState,
                             onSearchChange = viewModel::updateSearch,
                             onOpenApp = viewModel::requestOpenApp,
+                            onOpenAppInfo = viewModel::openAppInfo,
                             onNavigate = viewModel::navigateTo,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
@@ -190,6 +202,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             uiState = uiState,
                             onSearchChange = viewModel::updateSearch,
                             onOpenApp = viewModel::requestOpenApp,
+                            onOpenAppInfo = viewModel::openAppInfo,
                             onNavigate = viewModel::navigateTo,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
@@ -201,6 +214,8 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             onCycleAppOrder = viewModel::cycleAppOrder,
                             onToggleLocalDataOnly = viewModel::toggleLocalDataOnly,
                             onToggleBlackTheme = viewModel::toggleBlackThemeEnabled,
+                            onToggleGrayscale = viewModel::toggleGrayscaleEnabled,
+                            onToggleZeroApps = viewModel::toggleZeroAppsScheduleEnabled,
                             onCycleTextSize = viewModel::cycleTextSize,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
@@ -245,6 +260,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                     }
                 }
             }
+        }
         }
     }
 }
@@ -317,6 +333,7 @@ private fun HomeScreen(
     uiState: LauncherUiState,
     onSearchChange: (String) -> Unit,
     onOpenApp: (InstalledApp) -> Unit,
+    onOpenAppInfo: (InstalledApp) -> Unit,
     onNavigate: (LauncherScreen) -> Unit,
     onMenuClick: () -> Unit
 ) {
@@ -328,6 +345,12 @@ private fun HomeScreen(
                 delay(30_000)
             }
         }
+
+        val isZeroAppsActive = uiState.settings.zeroAppsScheduleEnabled && isTimeInSchedule(
+            now = now,
+            start = uiState.settings.zeroAppsStartTime,
+            end = uiState.settings.zeroAppsEndTime
+        )
 
         Column(Modifier.fillMaxSize()) {
             Text(
@@ -354,13 +377,15 @@ private fun HomeScreen(
             Eyebrow(stringResource(R.string.home_favorites_header))
             Spacer(Modifier.height(8.dp))
             val homeList = if (uiState.searchQuery.isBlank()) uiState.favoriteApps else uiState.visibleApps
-            if (homeList.isEmpty()) {
+            if (isZeroAppsActive) {
+                MutedEmptyText("Zero-Apps Schedule is active")
+            } else if (homeList.isEmpty()) {
                 MutedEmptyText(
                     if (uiState.searchQuery.isBlank()) stringResource(R.string.home_no_favorites) else stringResource(R.string.home_no_apps_found)
                 )
             } else {
                 homeList.take(7).forEach { app ->
-                    AppRow(label = app.label, onClick = { onOpenApp(app) })
+                    AppRow(label = app.label, onClick = { onOpenApp(app) }, onLongClick = { onOpenAppInfo(app) })
                 }
             }
             Spacer(Modifier.height(28.dp))
@@ -388,10 +413,18 @@ private fun AppsScreen(
     uiState: LauncherUiState,
     onSearchChange: (String) -> Unit,
     onOpenApp: (InstalledApp) -> Unit,
+    onOpenAppInfo: (InstalledApp) -> Unit,
     onNavigate: (LauncherScreen) -> Unit,
     onMenuClick: () -> Unit
 ) {
     FocusShell(selected = LauncherScreen.Apps, selectedScreen = LauncherScreen.Apps, onNavigate = onNavigate, onMenuClick = onMenuClick) {
+        val now = LocalDateTime.now()
+        val isZeroAppsActive = uiState.settings.zeroAppsScheduleEnabled && isTimeInSchedule(
+            now = now,
+            start = uiState.settings.zeroAppsStartTime,
+            end = uiState.settings.zeroAppsEndTime
+        )
+
         Column(Modifier.fillMaxSize()) {
             Text(
                 text = stringResource(R.string.apps_title),
@@ -407,13 +440,17 @@ private fun AppsScreen(
             )
             Spacer(Modifier.height(18.dp))
             LazyColumn(Modifier.fillMaxSize()) {
-                items(uiState.visibleApps, key = { it.id }) { app ->
-                    AppRow(label = app.label, onClick = { onOpenApp(app) })
-                }
-                if (uiState.loading) {
-                    item { MutedEmptyText(stringResource(R.string.apps_loading)) }
-                } else if (uiState.visibleApps.isEmpty()) {
-                    item { MutedEmptyText(stringResource(R.string.home_no_apps_found)) }
+                if (isZeroAppsActive) {
+                    item { MutedEmptyText("Zero-Apps Schedule is active") }
+                } else {
+                    items(uiState.visibleApps, key = { it.id }) { app ->
+                        AppRow(label = app.label, onClick = { onOpenApp(app) }, onLongClick = { onOpenAppInfo(app) })
+                    }
+                    if (uiState.loading) {
+                        item { MutedEmptyText(stringResource(R.string.apps_loading)) }
+                    } else if (uiState.visibleApps.isEmpty()) {
+                        item { MutedEmptyText(stringResource(R.string.home_no_apps_found)) }
+                    }
                 }
             }
         }
@@ -428,6 +465,8 @@ private fun SettingsScreen(
     onCycleAppOrder: () -> Unit,
     onToggleLocalDataOnly: () -> Unit,
     onToggleBlackTheme: () -> Unit,
+    onToggleGrayscale: () -> Unit,
+    onToggleZeroApps: () -> Unit,
     onCycleTextSize: () -> Unit,
     onMenuClick: () -> Unit
 ) {
@@ -475,6 +514,19 @@ private fun SettingsScreen(
                     label = stringResource(R.string.settings_local_data_only),
                     selected = uiState.settings.localDataOnly,
                     onClick = onToggleLocalDataOnly
+                )
+                Spacer(Modifier.height(28.dp))
+
+                SettingsSection("SYSTEM INTEGRATION")
+                ToggleRow(
+                    label = "Grayscale (E-Ink) Mode",
+                    selected = uiState.settings.grayscaleEnabled,
+                    onClick = onToggleGrayscale
+                )
+                ToggleRow(
+                    label = "Zero-Apps Schedule (22:00 - 07:00)",
+                    selected = uiState.settings.zeroAppsScheduleEnabled,
+                    onClick = onToggleZeroApps
                 )
                 Spacer(Modifier.height(28.dp))
 
@@ -990,13 +1042,17 @@ private fun SearchInput(value: String, placeholder: String, onValueChange: (Stri
     )
 }
 
+@androidx.compose.foundation.ExperimentalFoundationApi
 @Composable
-private fun AppRow(label: String, onClick: () -> Unit) {
+private fun AppRow(label: String, onClick: () -> Unit, onLongClick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
-            .clickable(onClick = onClick),
+            .androidx.compose.foundation.combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -1251,6 +1307,28 @@ private fun selectorApps(uiState: LauncherUiState, includeHidden: Boolean): List
     return uiState.installedApps
         .filter { includeHidden || it.id !in uiState.settings.hiddenAppIds }
         .filter { query.isBlank() || it.label.contains(query, ignoreCase = true) }
+}
+
+private fun isTimeInSchedule(now: LocalDateTime, start: String, end: String): Boolean {
+    return try {
+        val startParts = start.split(":")
+        val endParts = end.split(":")
+        val startHour = startParts[0].toInt()
+        val startMin = startParts[1].toInt()
+        val endHour = endParts[0].toInt()
+        val endMin = endParts[1].toInt()
+
+        val startTime = now.withHour(startHour).withMinute(startMin).withSecond(0).withNano(0)
+        val endTime = now.withHour(endHour).withMinute(endMin).withSecond(0).withNano(0)
+
+        if (startTime.isBefore(endTime) || startTime.isEqual(endTime)) {
+            (now.isEqual(startTime) || now.isAfter(startTime)) && now.isBefore(endTime)
+        } else {
+            (now.isEqual(startTime) || now.isAfter(startTime)) || now.isBefore(endTime)
+        }
+    } catch (e: Exception) {
+        false
+    }
 }
 
 private fun appVersionText(): String = "1.0.0"

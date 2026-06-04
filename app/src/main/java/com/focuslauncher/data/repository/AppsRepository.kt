@@ -42,6 +42,14 @@ class AppsRepository(private val context: Context) {
         }.isSuccess
     }
 
+    fun openAppInfo(app: InstalledApp) {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = android.net.Uri.parse("package:${app.packageName}")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        runCatching { context.startActivity(intent) }
+    }
+
     fun openDefaultHomeSettings() {
         val intent = Intent(Settings.ACTION_HOME_SETTINGS)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

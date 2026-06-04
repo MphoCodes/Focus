@@ -25,6 +25,10 @@ class SettingsRepository(context: Context) {
             focusPauseSeconds = preferences[Keys.FOCUS_PAUSE_SECONDS] ?: 5,
             localDataOnly = preferences[Keys.LOCAL_DATA_ONLY] ?: true,
             blackThemeEnabled = preferences[Keys.BLACK_THEME_ENABLED] ?: true,
+            grayscaleEnabled = preferences[Keys.GRAYSCALE_ENABLED] ?: false,
+            zeroAppsScheduleEnabled = preferences[Keys.ZERO_APPS_SCHEDULE_ENABLED] ?: false,
+            zeroAppsStartTime = preferences[Keys.ZERO_APPS_START_TIME] ?: "22:00",
+            zeroAppsEndTime = preferences[Keys.ZERO_APPS_END_TIME] ?: "07:00",
             textSize = preferences[Keys.TEXT_SIZE] ?: "Standard",
             appOrder = preferences[Keys.APP_ORDER] ?: "Alphabetical",
             appLaunchCounts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty())
@@ -59,6 +63,22 @@ class SettingsRepository(context: Context) {
         dataStore.edit { it[Keys.BLACK_THEME_ENABLED] = value }
     }
 
+    suspend fun setGrayscaleEnabled(value: Boolean) {
+        dataStore.edit { it[Keys.GRAYSCALE_ENABLED] = value }
+    }
+
+    suspend fun setZeroAppsScheduleEnabled(value: Boolean) {
+        dataStore.edit { it[Keys.ZERO_APPS_SCHEDULE_ENABLED] = value }
+    }
+
+    suspend fun setZeroAppsStartTime(value: String) {
+        dataStore.edit { it[Keys.ZERO_APPS_START_TIME] = value }
+    }
+
+    suspend fun setZeroAppsEndTime(value: String) {
+        dataStore.edit { it[Keys.ZERO_APPS_END_TIME] = value }
+    }
+
     suspend fun setTextSize(value: String) {
         dataStore.edit { it[Keys.TEXT_SIZE] = value }
     }
@@ -83,6 +103,10 @@ class SettingsRepository(context: Context) {
         val FOCUS_PAUSE_SECONDS = intPreferencesKey("focus_pause_seconds")
         val LOCAL_DATA_ONLY = booleanPreferencesKey("local_data_only")
         val BLACK_THEME_ENABLED = booleanPreferencesKey("black_theme_enabled")
+        val GRAYSCALE_ENABLED = booleanPreferencesKey("grayscale_enabled")
+        val ZERO_APPS_SCHEDULE_ENABLED = booleanPreferencesKey("zero_apps_schedule_enabled")
+        val ZERO_APPS_START_TIME = stringPreferencesKey("zero_apps_start_time")
+        val ZERO_APPS_END_TIME = stringPreferencesKey("zero_apps_end_time")
         val TEXT_SIZE = stringPreferencesKey("text_size")
         val APP_ORDER = stringPreferencesKey("app_order")
         val APP_LAUNCH_COUNTS = stringSetPreferencesKey("app_launch_counts")
@@ -109,4 +133,3 @@ object LaunchCountSerializer {
             .toSet()
     }
 }
-

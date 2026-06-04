@@ -177,6 +177,28 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch { settingsRepository.setBlackThemeEnabled(!current) }
     }
 
+    fun toggleGrayscaleEnabled() {
+        val current = uiState.value.settings.grayscaleEnabled
+        viewModelScope.launch { settingsRepository.setGrayscaleEnabled(!current) }
+    }
+
+    fun toggleZeroAppsScheduleEnabled() {
+        val current = uiState.value.settings.zeroAppsScheduleEnabled
+        viewModelScope.launch { settingsRepository.setZeroAppsScheduleEnabled(!current) }
+    }
+
+    fun setZeroAppsStartTime(time: String) {
+        viewModelScope.launch { settingsRepository.setZeroAppsStartTime(time) }
+    }
+
+    fun setZeroAppsEndTime(time: String) {
+        viewModelScope.launch { settingsRepository.setZeroAppsEndTime(time) }
+    }
+
+    fun openAppInfo(app: InstalledApp) {
+        appsRepository.openAppInfo(app)
+    }
+
     fun cycleTextSize() {
         val next = when (uiState.value.settings.textSize) {
             "Small" -> "Standard"
