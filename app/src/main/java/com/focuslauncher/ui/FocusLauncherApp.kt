@@ -75,7 +75,10 @@ import com.focuslauncher.data.model.InstalledApp
 import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 private val FocusBackground = Color(0xFF000000) // Mockup has pure black backgrounds
 private val LocalFocusPrimary = androidx.compose.runtime.compositionLocalOf { Color(0xFFFFFFFF) }
 private val FocusSecondary = Color(0xFF8E8E8E) // Clean medium gray
@@ -812,19 +815,19 @@ private fun IntentPromptScreen(
                 modifier = Modifier
                     .size(100.dp)
                     .scale(scale)
-                    .background(FocusPrimary.copy(alpha = 0.15f), CircleShape)
+                    .background(LocalFocusPrimary.current.copy(alpha = 0.15f), CircleShape)
             )
             Box(
                 modifier = Modifier
                     .size(75.dp)
                     .scale(scale)
-                    .background(FocusPrimary.copy(alpha = 0.3f), CircleShape)
+                    .background(LocalFocusPrimary.current.copy(alpha = 0.3f), CircleShape)
             )
             Box(
                 modifier = Modifier
                     .size(50.dp)
                     .scale(scale)
-                    .background(FocusPrimary, CircleShape)
+                    .background(LocalFocusPrimary.current, CircleShape)
             )
         }
 
@@ -847,11 +850,11 @@ private fun IntentPromptScreen(
         BasicTextField(
             value = typedIntent,
             onValueChange = { typedIntent = it },
-            textStyle = TextStyle(color = FocusPrimary, fontSize = 16.sp),
+            textStyle = TextStyle(color = LocalFocusPrimary.current, fontSize = 16.sp),
             modifier = Modifier
                 .fillMaxWidth()
                 .border(1.dp, FocusSecondary)
-                .padding(16.dp),
+                .padding(12.dp),
             decorationBox = { innerTextField ->
                 if (typedIntent.isEmpty()) {
                     Text("I am opening this because...", color = FocusSecondary, fontSize = 16.sp)
@@ -859,20 +862,16 @@ private fun IntentPromptScreen(
                 innerTextField()
             }
         )
-
-        Spacer(Modifier.height(18.dp))
-
-        val logs = uiState.settings.intentLogs.take(3)
-        if (logs.isNotEmpty()) {
-            Text("Recent intents:", color = FocusSecondary, fontSize = 12.sp)
-            Spacer(Modifier.height(8.dp))
-            logs.forEach { log ->
-                StaticReasonRow(log)
+        Spacer(Modifier.height(16.dp))
+        
+        Text(text = "Recent Intents", color = FocusSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Column(Modifier.fillMaxWidth()) {
+            uiState.settings.intentLogs.take(3).forEach { log ->
+                AppRow(label = log, onClick = { typedIntent = log })
             }
-            Spacer(Modifier.weight(1f))
-        } else {
-            Spacer(Modifier.weight(1f))
         }
+        Spacer(Modifier.height(32.dp))
 
         FocusButton(
             text = if (remaining > 0) stringResource(R.string.intent_prompt_btn_wait, remaining) else stringResource(R.string.intent_prompt_btn_continue),
@@ -1147,7 +1146,7 @@ private fun AppRow(label: String, onClick: () -> Unit, onLongClick: () -> Unit =
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
-            .androidx.compose.foundation.combinedClickable(
+            .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
             ),
@@ -1441,15 +1440,15 @@ private fun StatsScreen(
             item {
                 Text(
                     text = "DIGITAL STOICISM",
-                    color = FocusPrimary,
+                    color = LocalFocusPrimary.current,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "Reflect on your choices.",
-                    color = FocusMuted,
-                    fontSize = 12.sp
+                    text = "A minimalist environment for reclaiming attention.",
+                    color = LocalFocusPrimary.current,
+                    fontSize = 14.sp,
                 )
                 Spacer(Modifier.height(28.dp))
                 
