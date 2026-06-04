@@ -27,7 +27,7 @@ class SettingsRepository(context: Context) {
             blackThemeEnabled = preferences[Keys.BLACK_THEME_ENABLED] ?: true,
             textSize = preferences[Keys.TEXT_SIZE] ?: "Standard",
             appOrder = preferences[Keys.APP_ORDER] ?: "Alphabetical",
-            appLaunchCounts = decodeLaunchCounts(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty())
+            appLaunchCounts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty())
         )
     }
 
@@ -69,28 +69,10 @@ class SettingsRepository(context: Context) {
 
     suspend fun incrementAppLaunchCount(packageName: String) {
         dataStore.edit { preferences ->
-            val counts = decodeLaunchCounts(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()).toMutableMap()
+            val counts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()).toMutableMap()
             counts[packageName] = (counts[packageName] ?: 0) + 1
-            preferences[Keys.APP_LAUNCH_COUNTS] = encodeLaunchCounts(counts)
+            preferences[Keys.APP_LAUNCH_COUNTS] = LaunchCountSerializer.encode(counts)
         }
-    }
-
-    private fun decodeLaunchCounts(encoded: Set<String>): Map<String, Int> {
-        return encoded.mapNotNull { entry ->
-            val separatorIndex = entry.lastIndexOf('=')
-            if (separatorIndex <= 0 || separatorIndex == entry.lastIndex) return@mapNotNull null
-
-            val packageName = entry.substring(0, separatorIndex)
-            val count = entry.substring(separatorIndex + 1).toIntOrNull() ?: return@mapNotNull null
-            packageName to count
-        }.toMap()
-    }
-
-    private fun encodeLaunchCounts(counts: Map<String, Int>): Set<String> {
-        return counts
-            .filterValues { it > 0 }
-            .map { (packageName, count) -> "$packageName=$count" }
-            .toSet()
     }
 
     private object Keys {
@@ -106,3 +88,25 @@ class SettingsRepository(context: Context) {
         val APP_LAUNCH_COUNTS = stringSetPreferencesKey("app_launch_counts")
     }
 }
+
+// Standalone utility for encoding and decoding application launch counts
+object LaunchCountSerializer {
+    fun decode(encoded: Set<String>): Map<String, Int> {
+        return encoded.mapNotNull { entry ->
+            val separatorIndex = entry.lastIndexOf('=')
+            if (separatorIndex <= 0 || separatorIndex == entry.lastIndex) return@mapNotNull null
+
+            val packageName = entry.substring(0, separatorIndex)
+            val count = entry.substring(separatorIndex + 1).toIntOrNull() ?: return@mapNotNull null
+            packageName to count
+        }.toMap()
+    }
+
+    fun encode(counts: Map<String, Int>): Set<String> {
+        return counts
+            .filterValues { it > 0 }
+            .map { (packageName, count) -> "$packageName=$count" }
+            .toSet()
+    }
+}
+

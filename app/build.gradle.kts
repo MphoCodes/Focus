@@ -44,4 +44,5 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling:1.9.4")
+    testImplementation("junit:junit:4.13.2")
 }
