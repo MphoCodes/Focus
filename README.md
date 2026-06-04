@@ -1,4 +1,4 @@
-# Focus Launcher 🧘‍♂️
+# Focus Launcher
 
 Focus Launcher is a minimalist, distraction-free home screen replacement for Android. Built with Kotlin and Jetpack Compose, it is designed around the principles of **Digital Stoicism**—helping you ask what must be done rather than consuming what is presented to you.
 
@@ -6,32 +6,36 @@ The user interface is inspired by premium, Swiss-style typography mockups from *
 
 ---
 
-## 📱 Features
+## Features
 
 * **Intent Focus**: Displays a customizable intent header right on the home screen to keep you focused on your goals.
 * **Favorites Menu**: Allows selecting up to 7 primary applications. The rest of the interface is kept completely blank to reduce visual clutter.
 * **Clean App Drawer**: A borderless, minimalist scrollable listing of all installed launchable applications with live search.
 * **Healthy Friction (Pause Mode)**: Designated apps (like social media or attention-grabbing feeds) trigger an intervention countdown timer (5s, 10s, 20s) and ask you why you are opening them before letting you proceed.
 * **Hide Applications**: Easily hide distracting apps from both the search results and the drawer.
+* **App Disguises**: Rename distracting apps with dull labels to reduce visual triggers while keeping launch behavior intact.
+* **Strict App Time Quotas**: Set daily limits for specific apps and hard-block launches once the quota is exhausted.
+* **Contextual Focus Profiles**: Configure Work, Home, and Weekend app lists with manual switching, time/day rules, and optional Wi-Fi SSID triggers.
+* **Notification Batching**: Intercept non-essential notifications and deliver batched summaries at 12:00 and 18:00 while essential apps bypass the filter.
 * **Window Insets Compatibility**: Native edge-to-edge rendering supporting status bar and gesture navigation padding on modern Android versions.
 * **Full Localization**: Zero hardcoded strings. All copy is managed via Android resource values (`strings.xml`) for easy translations.
 
 ---
 
-## 🛠️ Architecture & Tech Stack
+## Architecture & Tech Stack
 
 The application conforms to standard Android architecture guidelines:
 * **UI Framework**: Jetpack Compose using Material 3 styling tokens.
 * **Architecture Pattern**: MVVM (Model-View-ViewModel) with unidirectional data flow (UDF).
 * **Concurrency**: Kotlin Coroutines & Flows for reactive state management.
-* **Persistence**: Jetpack DataStore (Preferences DataStore) for settings, favorites, hidden configurations, and focus-mode preferences.
+* **Persistence**: Jetpack DataStore (Preferences DataStore) for launcher settings, app lists, profiles, quotas, aliases, and notification batching state.
 * **Build System**: Kotlin Gradle DSL (`build.gradle.kts`) with toolchain targets.
 * **Java Version**: JDK 17.
 * **Target SDK**: Android 16 (API 36).
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 * **Android Studio** (Koala or newer recommended)
@@ -41,8 +45,8 @@ The application conforms to standard Android architecture guidelines:
 ### How to Compile Locally
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/focus-launcher.git
-   cd focus-launcher
+   git clone https://github.com/MphoCodes/Focus.git
+   cd Focus
    ```
 2. Build the project using the Gradle wrapper:
    ```bash
@@ -56,7 +60,7 @@ The application conforms to standard Android architecture guidelines:
 
 ---
 
-## 📦 Releasing Strategy
+## Releasing Strategy
 
 ### 1. Semantic Versioning
 This project uses [Semantic Versioning](https://semver.org/):
@@ -82,7 +86,7 @@ To prepare an Android App Bundle (AAB) for deployment to the Google Play Store:
 ### 3. Automated CI/CD & GitHub Releases
 Our release workflow is fully automated through **GitHub Actions**:
 * **On Pull Request / Push to `main`**: Runs code compilation checks and Gradle verification.
-* **On Pushing a Tag (`v*.*.*`)**:
+* **On Pushing a Tag (`v*`)**:
   * Compiles the production-ready Release APK.
-  * Automatically creates a new **GitHub Release** draft.
-  * Uploads the generated release APK as an asset for users to install directly.
+  * Automatically creates a published **GitHub Release**.
+  * Uploads the generated unsigned release APK as an asset for signing, testing, or distribution preparation.
