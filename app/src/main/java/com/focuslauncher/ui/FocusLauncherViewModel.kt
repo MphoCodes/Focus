@@ -44,20 +44,50 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
     private val screen = MutableStateFlow(LauncherScreen.Home)
     private val pendingPromptApp = MutableStateFlow<InstalledApp?>(null)
     private val loading = MutableStateFlow(true)
+    private val appLaunchCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
 
     private val baseUiState = combine(
         installedApps,
         settingsRepository.settings,
         searchQuery,
         screen,
-        pendingPromptApp
+        pendingPromptApp,
+        appLaunchCounts
     ) { apps: List<InstalledApp>,
         settings: LauncherSettings,
         query: String,
         currentScreen: LauncherScreen,
-        promptApp: InstalledApp? ->
+        promptApp: InstalledApp?,
+        launchCounts: Map<String, Int> ->
         val normalizedQuery = query.trim()
-        val visibleApps = apps
+
+        val sortedApps = when (settings.appOrder) {
+            "Installation Date" -> {
+                val pm = getApplication<Application>().packageManager
+                apps.sortedWith(
+                    compareBy<InstalledApp> { app ->
+                        try {
+                            @Suppress("DEPRECATION")
+                            pm.getPackageInfo(app.packageName, 0).firstInstallTime
+                        } catch (e: Exception) {
+                            0L
+                        }
+                    }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.label }
+                )
+            }
+            "Most Used" -> {
+                apps.sortedWith(
+                    compareByDescending<InstalledApp> { app ->
+                        launchCounts[app.packageName] ?: 0
+                    }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.label }
+                )
+            }
+            else -> { // "Alphabetical"
+                apps.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+            }
+        }
+
+        val visibleApps = sortedApps
             .filterNot { it.id in settings.hiddenAppIds }
             .filter { normalizedQuery.isBlank() || it.label.contains(normalizedQuery, ignoreCase = true) }
         val favorites = apps
@@ -140,7 +170,49 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch { settingsRepository.setFocusPauseSeconds(next) }
     }
 
+    fun toggleUsageAccessEnabled() {
+        val current = uiState.value.settings.usageAccessEnabled
+        viewModelScope.launch { settingsRepository.setUsageAccessEnabled(!current) }
+    }
+
+    fun toggleLocalDataOnly() {
+        val current = uiState.value.settings.localDataOnly
+        viewModelScope.launch { settingsRepository.setLocalDataOnly(!current) }
+    }
+
+    fun toggleBlackThemeEnabled() {
+        val current = uiState.value.settings.blackThemeEnabled
+        viewModelScope.launch { settingsRepository.setBlackThemeEnabled(!current) }
+    }
+
+    fun cycleTextSize() {
+        val next = when (uiState.value.settings.textSize) {
+            "Small" -> "Standard"
+            "Standard" -> "Large"
+            "Large" -> "Small"
+            else -> "Standard"
+        }
+        viewModelScope.launch { settingsRepository.setTextSize(next) }
+    }
+
+    fun cycleAppOrder() {
+        val next = when (uiState.value.settings.appOrder) {
+            "Alphabetical" -> "Installation Date"
+            "Installation Date" -> "Most Used"
+            "Most Used" -> "Alphabetical"
+            else -> "Alphabetical"
+        }
+        viewModelScope.launch { settingsRepository.setAppOrder(next) }
+    }
+
+    private fun incrementLaunchCount(packageName: String) {
+        val current = appLaunchCounts.value.toMutableMap()
+        current[packageName] = (current[packageName] ?: 0) + 1
+        appLaunchCounts.value = current
+    }
+
     fun requestOpenApp(app: InstalledApp) {
+        incrementLaunchCount(app.packageName)
         if (app.id in uiState.value.settings.intentPromptAppIds) {
             pendingPromptApp.value = app
         } else {
