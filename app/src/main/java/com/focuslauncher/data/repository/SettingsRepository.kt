@@ -43,6 +43,10 @@ class SettingsRepository(context: Context) {
             workProfileWifiSsid = preferences[Keys.WORK_PROFILE_WIFI_SSID].orEmpty(),
             homeProfileWifiSsid = preferences[Keys.HOME_PROFILE_WIFI_SSID].orEmpty(),
             weekendProfileWifiSsid = preferences[Keys.WEEKEND_PROFILE_WIFI_SSID].orEmpty(),
+            notificationBatchingEnabled = preferences[Keys.NOTIFICATION_BATCHING_ENABLED] ?: false,
+            essentialNotificationAppIds = preferences[Keys.ESSENTIAL_NOTIFICATION_APPS].orEmpty(),
+            batchedNotificationCounts = LaunchCountSerializer.decode(preferences[Keys.BATCHED_NOTIFICATION_COUNTS].orEmpty()),
+            lastNotificationBatchToken = preferences[Keys.LAST_NOTIFICATION_BATCH_TOKEN].orEmpty(),
             appLaunchCounts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()),
             appDeflectionCounts = LaunchCountSerializer.decode(preferences[Keys.APP_DEFLECTION_COUNTS].orEmpty()),
             intentLogs = preferences[Keys.INTENT_LOGS]?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList()
@@ -165,6 +169,30 @@ class SettingsRepository(context: Context) {
         }
     }
 
+    suspend fun setNotificationBatchingEnabled(value: Boolean) {
+        dataStore.edit { it[Keys.NOTIFICATION_BATCHING_ENABLED] = value }
+    }
+
+    suspend fun setEssentialNotificationAppIds(ids: Set<String>) {
+        dataStore.edit { it[Keys.ESSENTIAL_NOTIFICATION_APPS] = ids }
+    }
+
+    suspend fun incrementBatchedNotificationCount(packageName: String) {
+        dataStore.edit { preferences ->
+            val counts = LaunchCountSerializer.decode(preferences[Keys.BATCHED_NOTIFICATION_COUNTS].orEmpty()).toMutableMap()
+            counts[packageName] = (counts[packageName] ?: 0) + 1
+            preferences[Keys.BATCHED_NOTIFICATION_COUNTS] = LaunchCountSerializer.encode(counts)
+        }
+    }
+
+    suspend fun clearBatchedNotificationCounts() {
+        dataStore.edit { it[Keys.BATCHED_NOTIFICATION_COUNTS] = emptySet() }
+    }
+
+    suspend fun setLastNotificationBatchToken(token: String) {
+        dataStore.edit { it[Keys.LAST_NOTIFICATION_BATCH_TOKEN] = token }
+    }
+
     suspend fun incrementAppLaunchCount(packageName: String) {
         dataStore.edit { preferences ->
             val counts = LaunchCountSerializer.decode(preferences[Keys.APP_LAUNCH_COUNTS].orEmpty()).toMutableMap()
@@ -215,6 +243,10 @@ class SettingsRepository(context: Context) {
         val WORK_PROFILE_WIFI_SSID = stringPreferencesKey("work_profile_wifi_ssid")
         val HOME_PROFILE_WIFI_SSID = stringPreferencesKey("home_profile_wifi_ssid")
         val WEEKEND_PROFILE_WIFI_SSID = stringPreferencesKey("weekend_profile_wifi_ssid")
+        val NOTIFICATION_BATCHING_ENABLED = booleanPreferencesKey("notification_batching_enabled")
+        val ESSENTIAL_NOTIFICATION_APPS = stringSetPreferencesKey("essential_notification_apps")
+        val BATCHED_NOTIFICATION_COUNTS = stringSetPreferencesKey("batched_notification_counts")
+        val LAST_NOTIFICATION_BATCH_TOKEN = stringPreferencesKey("last_notification_batch_token")
         val APP_LAUNCH_COUNTS = stringSetPreferencesKey("app_launch_counts")
         val APP_DEFLECTION_COUNTS = stringSetPreferencesKey("app_deflection_counts")
         val INTENT_LOGS = stringPreferencesKey("intent_logs")

@@ -45,6 +45,7 @@
     <string name="settings_focus_mode_apps_count">%1$d apps</string>
     <string name="settings_app_time_quotas">App time quotas</string>
     <string name="settings_context_profiles">Context profiles</string>
+    <string name="settings_notification_batching">Notification batching</string>
     <string name="settings_intent_prompts">Intent prompts</string>
     <string name="settings_pause_duration">Pause duration</string>
     <string name="settings_pause_duration_off">Off</string>
@@ -111,6 +112,19 @@
     <string name="profiles_home_apps_desc">Choose the apps available in home context.</string>
     <string name="profiles_weekend_apps_title">Weekend profile</string>
     <string name="profiles_weekend_apps_desc">Choose the apps available on weekends.</string>
+
+    <!-- Notifications -->
+    <string name="notifications_title">Notification batching</string>
+    <string name="notifications_desc">Hold non-essential notifications and release a summary at noon and evening.</string>
+    <string name="notifications_enabled">Batching enabled</string>
+    <string name="notifications_listener_access">Listener access</string>
+    <string name="notifications_essential_apps">Essential apps</string>
+    <string name="notifications_batch_windows">Batch windows</string>
+    <string name="notifications_batch_windows_value">12:00 / 18:00</string>
+    <string name="notifications_pending_section">PENDING SUMMARY</string>
+    <string name="notifications_pending_empty">No pending notifications.</string>
+    <string name="notifications_essential_title">Essential notifications</string>
+    <string name="notifications_essential_desc">Choose apps that bypass notification batching.</string>
 
     <!-- Focus Mode -->
     <string name="focus_mode_title">Focus mode</string>

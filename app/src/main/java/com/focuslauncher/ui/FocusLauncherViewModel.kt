@@ -30,6 +30,8 @@ enum class LauncherScreen {
     WorkProfileApps,
     HomeProfileApps,
     WeekendProfileApps,
+    Notifications,
+    EssentialNotifications,
     FocusMode,
     DefaultHome,
     Stats
@@ -45,6 +47,7 @@ data class LauncherUiState(
     val pendingPromptApp: InstalledApp? = null,
     val quotaBlock: QuotaBlock? = null,
     val usageAccessGranted: Boolean = false,
+    val notificationListenerAccessGranted: Boolean = false,
     val activeContextProfileId: String = "default",
     val loading: Boolean = true
 )
@@ -61,6 +64,11 @@ private data class ContextSignal(
     val wifiSsid: String? = null
 )
 
+private data class SystemAccess(
+    val usageAccessGranted: Boolean = false,
+    val notificationListenerAccessGranted: Boolean = false
+)
+
 class FocusLauncherViewModel(application: Application) : AndroidViewModel(application) {
     private val appsRepository = AppsRepository(application.applicationContext)
     private val settingsRepository = SettingsRepository(application.applicationContext)
@@ -69,7 +77,7 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
     private val screen = MutableStateFlow(LauncherScreen.Home)
     private val pendingPromptApp = MutableStateFlow<InstalledApp?>(null)
     private val quotaBlock = MutableStateFlow<QuotaBlock?>(null)
-    private val usageAccessGranted = MutableStateFlow(false)
+    private val systemAccess = MutableStateFlow(SystemAccess())
     private val contextSignal = MutableStateFlow(ContextSignal())
     private val loading = MutableStateFlow(true)
 
@@ -131,14 +139,15 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         )
     }
 
-    val uiState = combine(baseUiState, loading, quotaBlock, usageAccessGranted, contextSignal) { state, isLoading, currentQuotaBlock, hasUsageAccess, signal ->
+    val uiState = combine(baseUiState, loading, quotaBlock, systemAccess, contextSignal) { state, isLoading, currentQuotaBlock, access, signal ->
         val activeProfileId = resolveActiveContextProfile(state.settings, signal)
         state.copy(
             visibleApps = applyContextProfile(state.visibleApps, state.settings, activeProfileId),
             favoriteApps = applyContextProfile(state.favoriteApps, state.settings, activeProfileId),
             loading = isLoading,
             quotaBlock = currentQuotaBlock,
-            usageAccessGranted = hasUsageAccess,
+            usageAccessGranted = access.usageAccessGranted,
+            notificationListenerAccessGranted = access.notificationListenerAccessGranted,
             activeContextProfileId = activeProfileId
         )
     }.stateIn(
@@ -149,7 +158,7 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
 
     init {
         refreshApps()
-        refreshUsageAccess()
+        refreshSystemAccess()
         refreshContextSignal()
         viewModelScope.launch {
             while (true) {
@@ -170,7 +179,7 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
     fun navigateTo(target: LauncherScreen) {
         screen.value = target
         searchQuery.value = ""
-        refreshUsageAccess()
+        refreshSystemAccess()
     }
 
     fun updateSearch(query: String) {
@@ -332,6 +341,17 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch { settingsRepository.setProfileWifiSsid(profileId, ssid) }
     }
 
+    fun toggleNotificationBatchingEnabled() {
+        val current = uiState.value.settings.notificationBatchingEnabled
+        viewModelScope.launch { settingsRepository.setNotificationBatchingEnabled(!current) }
+    }
+
+    fun toggleEssentialNotificationApp(app: InstalledApp) {
+        val current = uiState.value.settings.essentialNotificationAppIds.toMutableSet()
+        if (!current.add(app.id)) current.remove(app.id)
+        viewModelScope.launch { settingsRepository.setEssentialNotificationAppIds(current) }
+    }
+
     private suspend fun launchApp(app: InstalledApp) {
         if (appsRepository.openApp(app)) {
             settingsRepository.incrementAppLaunchCount(app.packageName)
@@ -376,12 +396,29 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         appsRepository.openUsageAccessSettings()
     }
 
+    fun openNotificationListenerSettings() {
+        appsRepository.openNotificationListenerSettings()
+    }
+
     fun dismissQuotaBlock() {
         quotaBlock.value = null
     }
 
     fun refreshUsageAccess() {
-        usageAccessGranted.value = appsRepository.hasUsageAccess()
+        systemAccess.value = systemAccess.value.copy(usageAccessGranted = appsRepository.hasUsageAccess())
+    }
+
+    fun refreshNotificationListenerAccess() {
+        systemAccess.value = systemAccess.value.copy(
+            notificationListenerAccessGranted = appsRepository.hasNotificationListenerAccess()
+        )
+    }
+
+    fun refreshSystemAccess() {
+        systemAccess.value = SystemAccess(
+            usageAccessGranted = appsRepository.hasUsageAccess(),
+            notificationListenerAccessGranted = appsRepository.hasNotificationListenerAccess()
+        )
     }
 
     fun refreshContextSignal() {
@@ -396,7 +433,7 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         if (quotaMinutes <= 0) return false
 
         val hasUsageAccess = appsRepository.hasUsageAccess()
-        usageAccessGranted.value = hasUsageAccess
+        systemAccess.value = systemAccess.value.copy(usageAccessGranted = hasUsageAccess)
         if (!hasUsageAccess) {
             quotaBlock.value = QuotaBlock(
                 app = app,

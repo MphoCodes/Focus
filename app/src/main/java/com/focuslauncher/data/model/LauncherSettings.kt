@@ -26,6 +26,10 @@ data class LauncherSettings(
     val workProfileWifiSsid: String = "",
     val homeProfileWifiSsid: String = "",
     val weekendProfileWifiSsid: String = "",
+    val notificationBatchingEnabled: Boolean = false,
+    val essentialNotificationAppIds: Set<String> = emptySet(),
+    val batchedNotificationCounts: Map<String, Int> = emptyMap(),
+    val lastNotificationBatchToken: String = "",
     val appLaunchCounts: Map<String, Int> = emptyMap(),
     val appDeflectionCounts: Map<String, Int> = emptyMap(),
     val intentLogs: List<String> = emptyList()

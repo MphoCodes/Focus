@@ -89,6 +89,20 @@ class AppsRepository(private val context: Context) {
         context.startActivity(intent)
     }
 
+    fun hasNotificationListenerAccess(): Boolean {
+        val enabledListeners = Settings.Secure.getString(
+            context.contentResolver,
+            "enabled_notification_listeners"
+        ).orEmpty()
+        return enabledListeners.contains(context.packageName)
+    }
+
+    fun openNotificationListenerSettings() {
+        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    }
+
     @Suppress("DEPRECATION")
     fun getCurrentWifiSsid(): String? {
         val wifiManager = context.applicationContext.getSystemService(WifiManager::class.java) ?: return null

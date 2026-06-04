@@ -176,6 +176,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             "App disguises" to LauncherScreen.Disguises,
                             "App time quotas" to LauncherScreen.Quotas,
                             "Context profiles" to LauncherScreen.ContextProfiles,
+                            "Notifications" to LauncherScreen.Notifications,
                             "Focus mode" to LauncherScreen.FocusMode,
                             "Set as default" to LauncherScreen.DefaultHome,
                             "Stats" to LauncherScreen.Stats
@@ -336,6 +337,25 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             selectedIds = uiState.settings.weekendProfileAppIds,
                             onSearchChange = viewModel::updateSearch,
                             onToggleApp = viewModel::toggleWeekendProfileApp,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.Notifications -> NotificationBatchingScreen(
+                            uiState = uiState,
+                            onToggleEnabled = viewModel::toggleNotificationBatchingEnabled,
+                            onOpenListenerSettings = viewModel::openNotificationListenerSettings,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.EssentialNotifications -> ProfileAppSelectorScreen(
+                            title = stringResource(R.string.notifications_essential_title),
+                            description = stringResource(R.string.notifications_essential_desc),
+                            uiState = uiState,
+                            selectedIds = uiState.settings.essentialNotificationAppIds,
+                            onSearchChange = viewModel::updateSearch,
+                            onToggleApp = viewModel::toggleEssentialNotificationApp,
                             onNavigate = viewModel::navigateTo,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
@@ -634,6 +654,11 @@ private fun SettingsScreen(
                     label = stringResource(R.string.settings_context_profiles),
                     value = displayProfileName(uiState.activeContextProfileId),
                     onClick = { onNavigate(LauncherScreen.ContextProfiles) }
+                )
+                SettingRow(
+                    label = stringResource(R.string.settings_notification_batching),
+                    value = stringResource(R.string.settings_focus_mode_apps_count, uiState.settings.essentialNotificationAppIds.size),
+                    onClick = { onNavigate(LauncherScreen.Notifications) }
                 )
                 SettingRow(stringResource(R.string.settings_intent_prompts), onClick = { onNavigate(LauncherScreen.FocusMode) })
                 SettingRow(
@@ -972,6 +997,67 @@ private fun ProfileAppSelectorScreen(
                 if (apps.isEmpty()) {
                     item { MutedEmptyText(stringResource(R.string.home_no_apps_found)) }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotificationBatchingScreen(
+    uiState: LauncherUiState,
+    onToggleEnabled: () -> Unit,
+    onOpenListenerSettings: () -> Unit,
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
+) {
+    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.Notifications, showBack = true, onNavigate = onNavigate, onMenuClick = onMenuClick) {
+        LazyColumn(Modifier.fillMaxSize()) {
+            item {
+                Text(
+                    text = stringResource(R.string.notifications_title),
+                    color = LocalFocusPrimary.current,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.notifications_desc),
+                    color = FocusMuted,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp
+                )
+                Spacer(Modifier.height(24.dp))
+                ToggleRow(
+                    label = stringResource(R.string.notifications_enabled),
+                    selected = uiState.settings.notificationBatchingEnabled,
+                    onClick = onToggleEnabled
+                )
+                SettingRow(
+                    label = stringResource(R.string.notifications_listener_access),
+                    value = stringResource(if (uiState.notificationListenerAccessGranted) R.string.quotas_usage_access_granted else R.string.quotas_usage_access_required),
+                    onClick = onOpenListenerSettings
+                )
+                SettingRow(
+                    label = stringResource(R.string.notifications_essential_apps),
+                    value = stringResource(R.string.settings_focus_mode_apps_count, uiState.settings.essentialNotificationAppIds.size),
+                    onClick = { onNavigate(LauncherScreen.EssentialNotifications) }
+                )
+                SettingRow(
+                    label = stringResource(R.string.notifications_batch_windows),
+                    value = stringResource(R.string.notifications_batch_windows_value)
+                )
+                Spacer(Modifier.height(24.dp))
+                SettingsSection(stringResource(R.string.notifications_pending_section))
+                if (uiState.settings.batchedNotificationCounts.isEmpty()) {
+                    MutedEmptyText(stringResource(R.string.notifications_pending_empty))
+                } else {
+                    uiState.settings.batchedNotificationCounts.entries.sortedByDescending { it.value }.forEach { (pkg, count) ->
+                        val app = uiState.installedApps.find { it.packageName == pkg }
+                        val label = app?.let { appDisplayLabel(it, uiState.settings) } ?: pkg
+                        SettingRow(label = label, value = count.toString())
+                    }
+                }
+                Spacer(Modifier.height(32.dp))
             }
         }
     }
