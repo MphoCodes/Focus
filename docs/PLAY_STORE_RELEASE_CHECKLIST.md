@@ -43,7 +43,7 @@ base64 -i secrets/focus-upload-keystore.jks | pbcopy
 - Feature graphic.
 - Content rating questionnaire.
 - Target audience and app category.
-- Public privacy policy URL.
+- Public privacy policy URL: `https://mphocodes.github.io/Focus/privacy-policy/`.
 
 ## Data Safety Declarations
 
