@@ -1730,6 +1730,9 @@ private fun CheckRow(label: String, selected: Boolean, muted: Boolean = false, o
 
 @Composable
 private fun DisguiseRow(app: InstalledApp, value: String, onValueChange: (String) -> Unit) {
+    var draft by remember(value) { mutableStateOf(value) }
+    val isModified = draft != value
+    val isDuplicate = draft.trim().equals(app.label.trim(), ignoreCase = true)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1744,8 +1747,8 @@ private fun DisguiseRow(app: InstalledApp, value: String, onValueChange: (String
         )
         Spacer(Modifier.height(6.dp))
         BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
+            value = draft,
+            onValueChange = { draft = it },
             singleLine = true,
             textStyle = TextStyle(color = LocalFocusPrimary.current, fontSize = 15.sp),
             modifier = Modifier
@@ -1756,7 +1759,7 @@ private fun DisguiseRow(app: InstalledApp, value: String, onValueChange: (String
             decorationBox = { innerTextField ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxSize()) {
                     Box(Modifier.weight(1f)) {
-                        if (value.isBlank()) {
+                        if (draft.isBlank()) {
                             Text(
                                 text = stringResource(R.string.disguises_placeholder),
                                 color = FocusMuted,
@@ -1766,9 +1769,38 @@ private fun DisguiseRow(app: InstalledApp, value: String, onValueChange: (String
                         }
                         innerTextField()
                     }
+                    if (isModified) {
+                        Text(
+                            text = "SAVE",
+                            color = if (isDuplicate) FocusMuted else LocalFocusPrimary.current,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clickable(enabled = !isDuplicate) { onValueChange(draft) }
+                                .padding(horizontal = 8.dp, vertical = 8.dp)
+                        )
+                    } else if (value.isNotBlank()) {
+                        Text(
+                            text = "CLEAR",
+                            color = FocusMuted,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clickable { onValueChange("") }
+                                .padding(horizontal = 8.dp, vertical = 8.dp)
+                        )
+                    }
                 }
             }
         )
+        if (isModified && isDuplicate) {
+            Text(
+                text = "Alias matches original name",
+                color = FocusSecondary,
+                fontSize = 10.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
     }
 }
 
@@ -1800,6 +1832,8 @@ private fun QuotaRow(label: String, minutes: Int, onClick: () -> Unit) {
 
 @Composable
 private fun ProfileWifiField(label: String, value: String, onValueChange: (String) -> Unit) {
+    var draft by remember(value) { mutableStateOf(value) }
+    val isModified = draft != value
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1814,8 +1848,8 @@ private fun ProfileWifiField(label: String, value: String, onValueChange: (Strin
         )
         Spacer(Modifier.height(6.dp))
         BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
+            value = draft,
+            onValueChange = { draft = it },
             singleLine = true,
             textStyle = TextStyle(color = LocalFocusPrimary.current, fontSize = 15.sp),
             modifier = Modifier
@@ -1826,7 +1860,7 @@ private fun ProfileWifiField(label: String, value: String, onValueChange: (Strin
             decorationBox = { innerTextField ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxSize()) {
                     Box(Modifier.weight(1f)) {
-                        if (value.isBlank()) {
+                        if (draft.isBlank()) {
                             Text(
                                 text = stringResource(R.string.profiles_wifi_placeholder),
                                 color = FocusMuted,
@@ -1835,6 +1869,27 @@ private fun ProfileWifiField(label: String, value: String, onValueChange: (Strin
                             )
                         }
                         innerTextField()
+                    }
+                    if (isModified) {
+                        Text(
+                            text = "SAVE",
+                            color = LocalFocusPrimary.current,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clickable { onValueChange(draft) }
+                                .padding(horizontal = 8.dp, vertical = 8.dp)
+                        )
+                    } else if (value.isNotBlank()) {
+                        Text(
+                            text = "CLEAR",
+                            color = FocusMuted,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clickable { onValueChange("") }
+                                .padding(horizontal = 8.dp, vertical = 8.dp)
+                        )
                     }
                 }
             }
