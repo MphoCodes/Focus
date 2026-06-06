@@ -965,6 +965,19 @@ private fun ContextProfilesScreen(
                 Spacer(Modifier.height(24.dp))
 
                 SettingsSection(stringResource(R.string.profiles_section_wifi))
+                SettingRow(
+                    label = stringResource(R.string.profiles_current_wifi),
+                    value = uiState.currentWifiSsid ?: stringResource(R.string.profiles_wifi_hidden_or_disconnected)
+                )
+                if (uiState.currentWifiSsid == null) {
+                    Text(
+                        text = stringResource(R.string.profiles_wifi_hidden_warning),
+                        color = FocusSecondary,
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                    )
+                }
                 ProfileWifiField(
                     label = stringResource(R.string.profiles_work_wifi),
                     value = uiState.settings.workProfileWifiSsid,
