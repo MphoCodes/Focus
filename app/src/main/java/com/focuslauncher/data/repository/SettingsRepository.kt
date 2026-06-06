@@ -217,6 +217,22 @@ class SettingsRepository(context: Context) {
         }
     }
 
+    suspend fun clearIntentLogs() {
+        dataStore.edit { it.remove(Keys.INTENT_LOGS) }
+    }
+
+    suspend fun clearStats() {
+        dataStore.edit { preferences ->
+            preferences.remove(Keys.APP_LAUNCH_COUNTS)
+            preferences.remove(Keys.APP_DEFLECTION_COUNTS)
+            preferences.remove(Keys.APP_DAILY_QUOTA_MINUTES)
+        }
+    }
+
+    suspend fun clearAllSettings() {
+        dataStore.edit { it.clear() }
+    }
+
     private object Keys {
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val FAVORITE_APPS = stringSetPreferencesKey("favorite_apps")
