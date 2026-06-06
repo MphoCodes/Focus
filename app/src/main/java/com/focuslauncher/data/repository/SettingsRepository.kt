@@ -8,6 +8,10 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.focuslauncher.data.model.LauncherSettings
+import com.focuslauncher.data.model.AppOrder
+import com.focuslauncher.data.model.TextSize
+import com.focuslauncher.data.model.ThemeAccent
+import com.focuslauncher.data.model.ProfileId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -29,14 +33,14 @@ class SettingsRepository(context: Context) {
             zeroAppsScheduleEnabled = preferences[Keys.ZERO_APPS_SCHEDULE_ENABLED] ?: false,
             zeroAppsStartTime = preferences[Keys.ZERO_APPS_START_TIME] ?: "22:00",
             zeroAppsEndTime = preferences[Keys.ZERO_APPS_END_TIME] ?: "07:00",
-            textSize = preferences[Keys.TEXT_SIZE] ?: "Standard",
-            appOrder = preferences[Keys.APP_ORDER] ?: "Alphabetical",
-            themeAccent = preferences[Keys.THEME_ACCENT] ?: "E-Ink Grey",
+            textSize = TextSize.fromString(preferences[Keys.TEXT_SIZE]),
+            appOrder = AppOrder.fromString(preferences[Keys.APP_ORDER]),
+            themeAccent = ThemeAccent.fromString(preferences[Keys.THEME_ACCENT]),
             appDisguises = AppDisguiseSerializer.decode(preferences[Keys.APP_DISGUISES].orEmpty()),
             appDailyQuotaMinutes = LaunchCountSerializer.decode(preferences[Keys.APP_DAILY_QUOTA_MINUTES].orEmpty()),
             contextProfilesEnabled = preferences[Keys.CONTEXT_PROFILES_ENABLED] ?: false,
             contextProfilesAutoSwitch = preferences[Keys.CONTEXT_PROFILES_AUTO_SWITCH] ?: true,
-            manualContextProfileId = preferences[Keys.MANUAL_CONTEXT_PROFILE_ID] ?: "default",
+            manualContextProfileId = ProfileId.fromString(preferences[Keys.MANUAL_CONTEXT_PROFILE_ID]),
             workProfileAppIds = preferences[Keys.WORK_PROFILE_APPS].orEmpty(),
             homeProfileAppIds = preferences[Keys.HOME_PROFILE_APPS].orEmpty(),
             weekendProfileAppIds = preferences[Keys.WEEKEND_PROFILE_APPS].orEmpty(),
@@ -97,16 +101,16 @@ class SettingsRepository(context: Context) {
         dataStore.edit { it[Keys.ZERO_APPS_END_TIME] = value }
     }
 
-    suspend fun setTextSize(value: String) {
-        dataStore.edit { it[Keys.TEXT_SIZE] = value }
+    suspend fun setTextSize(value: TextSize) {
+        dataStore.edit { it[Keys.TEXT_SIZE] = value.value }
     }
 
-    suspend fun setAppOrder(value: String) {
-        dataStore.edit { it[Keys.APP_ORDER] = value }
+    suspend fun setAppOrder(value: AppOrder) {
+        dataStore.edit { it[Keys.APP_ORDER] = value.value }
     }
 
-    suspend fun setThemeAccent(value: String) {
-        dataStore.edit { it[Keys.THEME_ACCENT] = value }
+    suspend fun setThemeAccent(value: ThemeAccent) {
+        dataStore.edit { it[Keys.THEME_ACCENT] = value.value }
     }
 
     suspend fun setAppDisguise(appId: String, disguise: String) {
@@ -142,8 +146,8 @@ class SettingsRepository(context: Context) {
         dataStore.edit { it[Keys.CONTEXT_PROFILES_AUTO_SWITCH] = value }
     }
 
-    suspend fun setManualContextProfileId(value: String) {
-        dataStore.edit { it[Keys.MANUAL_CONTEXT_PROFILE_ID] = value }
+    suspend fun setManualContextProfileId(value: ProfileId) {
+        dataStore.edit { it[Keys.MANUAL_CONTEXT_PROFILE_ID] = value.id }
     }
 
     suspend fun setWorkProfileAppIds(ids: Set<String>) {

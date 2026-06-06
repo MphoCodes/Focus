@@ -5,6 +5,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.focuslauncher.data.model.InstalledApp
 import com.focuslauncher.data.model.LauncherSettings
+import com.focuslauncher.data.model.AppOrder
+import com.focuslauncher.data.model.TextSize
+import com.focuslauncher.data.model.ThemeAccent
+import com.focuslauncher.data.model.ProfileId
+import com.focuslauncher.data.model.QuotaPresets
 import com.focuslauncher.data.repository.AppsRepository
 import com.focuslauncher.data.repository.SettingsRepository
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +57,7 @@ data class LauncherUiState(
     val quotaUsages: Map<String, Long> = emptyMap(),
     val usageAccessGranted: Boolean = false,
     val notificationListenerAccessGranted: Boolean = false,
-    val activeContextProfileId: String = "default",
+    val activeContextProfileId: ProfileId = ProfileId.DEFAULT,
     val currentWifiSsid: String? = null,
     val loading: Boolean = true
 )
@@ -105,7 +110,7 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         val normalizedQuery = query.trim()
 
         val sortedApps = when (settings.appOrder) {
-            "Installation Date" -> {
+            AppOrder.INSTALLATION_DATE -> {
                 val pm = getApplication<Application>().packageManager
                 apps.sortedWith(
                     compareBy<InstalledApp> { app ->
@@ -118,14 +123,14 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
                     }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.displayLabel(settings) }
                 )
             }
-            "Most Used" -> {
+            AppOrder.MOST_USED -> {
                 apps.sortedWith(
                     compareByDescending<InstalledApp> { app ->
                         settings.appLaunchCounts[app.packageName] ?: 0
                     }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.displayLabel(settings) }
                 )
             }
-            else -> { // "Alphabetical"
+            else -> { // Alphabetical
                 apps.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayLabel(settings) })
             }
         }
@@ -267,30 +272,27 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
 
     fun cycleTextSize() {
         val next = when (uiState.value.settings.textSize) {
-            "Small" -> "Standard"
-            "Standard" -> "Large"
-            "Large" -> "Small"
-            else -> "Standard"
+            TextSize.SMALL -> TextSize.STANDARD
+            TextSize.STANDARD -> TextSize.LARGE
+            TextSize.LARGE -> TextSize.SMALL
         }
         viewModelScope.launch { settingsRepository.setTextSize(next) }
     }
 
     fun cycleThemeAccent() {
         val next = when (uiState.value.settings.themeAccent) {
-            "E-Ink Grey" -> "Amber Mono"
-            "Amber Mono" -> "Forest Green"
-            "Forest Green" -> "E-Ink Grey"
-            else -> "E-Ink Grey"
+            ThemeAccent.E_INK_GREY -> ThemeAccent.AMBER_MONO
+            ThemeAccent.AMBER_MONO -> ThemeAccent.FOREST_GREEN
+            ThemeAccent.FOREST_GREEN -> ThemeAccent.E_INK_GREY
         }
         viewModelScope.launch { settingsRepository.setThemeAccent(next) }
     }
 
     fun cycleAppOrder() {
         val next = when (uiState.value.settings.appOrder) {
-            "Alphabetical" -> "Installation Date"
-            "Installation Date" -> "Most Used"
-            "Most Used" -> "Alphabetical"
-            else -> "Alphabetical"
+            AppOrder.ALPHABETICAL -> AppOrder.INSTALLATION_DATE
+            AppOrder.INSTALLATION_DATE -> AppOrder.MOST_USED
+            AppOrder.MOST_USED -> AppOrder.ALPHABETICAL
         }
         viewModelScope.launch { settingsRepository.setAppOrder(next) }
     }
@@ -301,13 +303,7 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
 
     fun cycleAppDailyQuota(app: InstalledApp) {
         val current = uiState.value.settings.appDailyQuotaMinutes[app.id] ?: 0
-        val next = when (current) {
-            0 -> 15
-            15 -> 30
-            30 -> 60
-            60 -> 120
-            else -> 0
-        }
+        val next = QuotaPresets.next(current)
         viewModelScope.launch { settingsRepository.setAppDailyQuotaMinutes(app.id, next) }
     }
 
@@ -323,10 +319,10 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
 
     fun cycleManualContextProfile() {
         val next = when (uiState.value.settings.manualContextProfileId) {
-            "default" -> "work"
-            "work" -> "home"
-            "home" -> "weekend"
-            else -> "default"
+            ProfileId.DEFAULT -> ProfileId.WORK
+            ProfileId.WORK -> ProfileId.HOME
+            ProfileId.HOME -> ProfileId.WEEKEND
+            ProfileId.WEEKEND -> ProfileId.DEFAULT
         }
         viewModelScope.launch { settingsRepository.setManualContextProfileId(next) }
     }
@@ -549,40 +545,40 @@ private fun InstalledApp.displayLabel(settings: LauncherSettings): String {
 private fun applyContextProfile(
     apps: List<InstalledApp>,
     settings: LauncherSettings,
-    activeProfileId: String
+    activeProfileId: ProfileId
 ): List<InstalledApp> {
-    if (!settings.contextProfilesEnabled || activeProfileId == "default") return apps
+    if (!settings.contextProfilesEnabled || activeProfileId == ProfileId.DEFAULT) return apps
     val allowedIds = profileAppIds(settings, activeProfileId)
     if (allowedIds.isEmpty()) return apps
     return apps.filter { it.id in allowedIds }
 }
 
-private fun profileAppIds(settings: LauncherSettings, profileId: String): Set<String> {
+private fun profileAppIds(settings: LauncherSettings, profileId: ProfileId): Set<String> {
     return when (profileId) {
-        "work" -> settings.workProfileAppIds
-        "home" -> settings.homeProfileAppIds
-        "weekend" -> settings.weekendProfileAppIds
+        ProfileId.WORK -> settings.workProfileAppIds
+        ProfileId.HOME -> settings.homeProfileAppIds
+        ProfileId.WEEKEND -> settings.weekendProfileAppIds
         else -> emptySet()
     }
 }
 
-private fun resolveActiveContextProfile(settings: LauncherSettings, signal: ContextSignal): String {
-    if (!settings.contextProfilesEnabled) return "default"
+private fun resolveActiveContextProfile(settings: LauncherSettings, signal: ContextSignal): ProfileId {
+    if (!settings.contextProfilesEnabled) return ProfileId.DEFAULT
     if (!settings.contextProfilesAutoSwitch) return settings.manualContextProfileId
 
     signal.wifiSsid?.let { ssid ->
         when (ssid) {
-            settings.workProfileWifiSsid.takeIf { it.isNotBlank() } -> return "work"
-            settings.homeProfileWifiSsid.takeIf { it.isNotBlank() } -> return "home"
-            settings.weekendProfileWifiSsid.takeIf { it.isNotBlank() } -> return "weekend"
+            settings.workProfileWifiSsid.takeIf { it.isNotBlank() } -> return ProfileId.WORK
+            settings.homeProfileWifiSsid.takeIf { it.isNotBlank() } -> return ProfileId.HOME
+            settings.weekendProfileWifiSsid.takeIf { it.isNotBlank() } -> return ProfileId.WEEKEND
         }
     }
 
     val day = signal.now.dayOfWeek
-    if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) return "weekend"
+    if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) return ProfileId.WEEKEND
 
     val hour = signal.now.hour
-    if (hour in 9..16) return "work"
+    if (hour in 9..16) return ProfileId.WORK
 
-    return "home"
+    return ProfileId.HOME
 }

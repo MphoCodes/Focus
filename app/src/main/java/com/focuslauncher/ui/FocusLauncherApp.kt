@@ -132,16 +132,15 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
 
     val currentBackground = if (uiState.settings.blackThemeEnabled) Color(0xFF000000) else Color(0xFF151515)
     val currentTextMultiplier = when (uiState.settings.textSize) {
-        "Small" -> 0.85f
-        "Standard" -> 1.0f
-        "Large" -> 1.15f
-        else -> 1.0f
+        com.focuslauncher.data.model.TextSize.SMALL -> 0.85f
+        com.focuslauncher.data.model.TextSize.STANDARD -> 1.0f
+        com.focuslauncher.data.model.TextSize.LARGE -> 1.15f
     }
     
     val currentAccentColor = when (uiState.settings.themeAccent) {
-        "Amber Mono" -> Color(0xFFFFB300)
-        "Forest Green" -> Color(0xFF4CAF50)
-        else -> Color(0xFFE2E2E2)
+        com.focuslauncher.data.model.ThemeAccent.AMBER_MONO -> androidx.compose.ui.graphics.Color(0xFFFFB300)
+        com.focuslauncher.data.model.ThemeAccent.FOREST_GREEN -> androidx.compose.ui.graphics.Color(0xFF4CAF50)
+        else -> androidx.compose.ui.graphics.Color(0xFFE2E2E2)
     }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -693,7 +692,7 @@ private fun SettingsScreen(
                 )
                 SettingRow(
                     label = stringResource(R.string.settings_app_order),
-                    value = uiState.settings.appOrder,
+                    value = uiState.settings.appOrder.value,
                     onClick = onCycleAppOrder
                 )
                 SettingRow(stringResource(R.string.settings_set_default), onClick = { onNavigate(LauncherScreen.DefaultHome) })
@@ -761,12 +760,12 @@ private fun SettingsScreen(
                 )
                 SettingRow(
                     label = stringResource(R.string.settings_text_size),
-                    value = uiState.settings.textSize,
+                    value = uiState.settings.textSize.value,
                     onClick = onCycleTextSize
                 )
                 SettingRow(
                     label = stringResource(R.string.settings_theme_accent),
-                    value = uiState.settings.themeAccent,
+                    value = uiState.settings.themeAccent.value,
                     onClick = onCycleThemeAccent
                 )
                 Spacer(Modifier.height(28.dp))
@@ -2149,11 +2148,11 @@ private fun formatUsageMinutes(usedMillis: Long): Int {
 }
 
 @Composable
-private fun displayProfileName(profileId: String): String {
+private fun displayProfileName(profileId: com.focuslauncher.data.model.ProfileId): String {
     return when (profileId) {
-        "work" -> stringResource(R.string.profiles_work)
-        "home" -> stringResource(R.string.profiles_home)
-        "weekend" -> stringResource(R.string.profiles_weekend)
+        com.focuslauncher.data.model.ProfileId.WORK -> stringResource(R.string.profiles_work)
+        com.focuslauncher.data.model.ProfileId.HOME -> stringResource(R.string.profiles_home)
+        com.focuslauncher.data.model.ProfileId.WEEKEND -> stringResource(R.string.profiles_weekend)
         else -> stringResource(R.string.profiles_default)
     }
 }
@@ -2180,7 +2179,7 @@ private fun isTimeInSchedule(now: LocalDateTime, start: String, end: String): Bo
     }
 }
 
-private fun appVersionText(): String = "1.1.1"
+private fun appVersionText(): String = com.focuslauncher.BuildConfig.VERSION_NAME
 
 @Composable
 private fun StatsScreen(
