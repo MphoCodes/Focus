@@ -12,8 +12,11 @@ import com.focuslauncher.MainActivity
 import com.focuslauncher.R
 import com.focuslauncher.data.model.LauncherSettings
 import com.focuslauncher.data.repository.SettingsRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -24,14 +27,30 @@ class FocusNotificationListenerService : NotificationListenerService() {
         getSystemService(NotificationManager::class.java)
     }
 
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(Dispatchers.IO + job)
+
+    @Volatile
+    private var currentSettings: LauncherSettings? = null
+
     override fun onCreate() {
         super.onCreate()
         ensureChannel()
+        scope.launch {
+            settingsRepository.settings.collect {
+                currentSettings = it
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        job.cancel()
     }
 
     override fun onListenerConnected() {
         super.onListenerConnected()
-        runBlocking {
+        scope.launch {
             deliverBatchIfDue(settingsRepository.settings.first())
         }
     }
@@ -39,14 +58,17 @@ class FocusNotificationListenerService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (sbn.packageName == packageName || sbn.notification.isGroupSummary()) return
 
-        runBlocking {
-            val settings = settingsRepository.settings.first()
-            if (!settings.notificationBatchingEnabled) return@runBlocking
-            if (isEssential(sbn.packageName, settings)) {
+        val settings = currentSettings ?: return
+        if (!settings.notificationBatchingEnabled) return
+        
+        if (isEssential(sbn.packageName, settings)) {
+            scope.launch {
                 deliverBatchIfDue(settings)
-                return@runBlocking
             }
+            return
+        }
 
+        scope.launch {
             cancelNotification(sbn.key)
             settingsRepository.incrementBatchedNotificationCount(sbn.packageName)
             deliverBatchIfDue(settingsRepository.settings.first())
