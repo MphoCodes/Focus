@@ -201,4 +201,5 @@
     <string name="notification_summary_title">Focus notification summary</string>
     <string name="notification_channel_name">Focus summaries</string>
     <string name="profiles_default">Default</string>
+    <string name="privacy_policy_title">Privacy Policy</string>
 </resources>

@@ -1151,6 +1151,7 @@ private fun PrivacyScreen(
     onNavigate: (LauncherScreen) -> Unit,
     onMenuClick: () -> Unit
 ) {
+    val context = LocalContext.current
     FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.Privacy, showBack = true, onNavigate = onNavigate, onMenuClick = onMenuClick) {
         LazyColumn(Modifier.fillMaxSize()) {
             item {
@@ -1187,6 +1188,13 @@ private fun PrivacyScreen(
                 )
                 Spacer(Modifier.height(16.dp))
                 SettingRow(label = "Data Management", value = "", onClick = { onNavigate(LauncherScreen.DataManagement) })
+                SettingRow(
+                    label = stringResource(R.string.privacy_policy_title),
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://mphocodes.github.io/Focus/privacy-policy/"))
+                        context.startActivity(intent)
+                    }
+                )
                 Spacer(Modifier.height(28.dp))
             }
         }
