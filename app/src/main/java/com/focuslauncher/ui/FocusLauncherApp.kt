@@ -110,6 +110,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
         }
     }
     val context = LocalContext.current
+    LifecycleResumeEffect { viewModel.refreshSystemAccess() }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -275,6 +276,13 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             onOpenApp = viewModel::requestOpenApp,
                             onOpenAppInfo = viewModel::openAppInfo,
                             onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.Setup -> SetupScreen(
+                            uiState = uiState,
+                            onNavigate = viewModel::navigateTo,
+                            onCompleteSetup = viewModel::completeOnboarding,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
 
@@ -671,6 +679,9 @@ private fun SettingsScreen(
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
+                Spacer(Modifier.height(28.dp))
+                SettingsSection("ONBOARDING")
+                SettingRow("Setup Checklist", onClick = { onNavigate(LauncherScreen.Setup) })
                 Spacer(Modifier.height(28.dp))
                 SettingsSection(stringResource(R.string.settings_section_home_screen))
                 SettingRow(stringResource(R.string.settings_fav_apps), onClick = { onNavigate(LauncherScreen.Favorites) })
@@ -2278,6 +2289,118 @@ private fun DataManagementScreen(
                     GhostButton(text = "Cancel", onClick = { showConfirmDialog = null })
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SetupScreen(
+    uiState: LauncherUiState,
+    onNavigate: (LauncherScreen) -> Unit,
+    onCompleteSetup: () -> Unit,
+    onMenuClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val appsRepository = remember { com.focuslauncher.data.repository.AppsRepository(context) }
+
+    FocusShell(
+        selected = LauncherScreen.Settings,
+        selectedScreen = LauncherScreen.Setup,
+        showBack = true,
+        onNavigate = onNavigate,
+        onMenuClick = onMenuClick
+    ) {
+        LazyColumn(Modifier.fillMaxSize()) {
+            item {
+                Text(
+                    text = "SETUP CHECKLIST",
+                    color = LocalFocusPrimary.current,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Complete these steps to unlock Focus Launcher's full potential.",
+                    color = FocusMuted,
+                    fontSize = 14.sp
+                )
+                Spacer(Modifier.height(28.dp))
+
+                val isDefault = appsRepository.isDefaultLauncher()
+                SettingRow(
+                    label = if (isDefault) "Done - Default Launcher" else "Set Default Launcher",
+                    value = "Required for home button",
+                    onClick = {
+                        val intent = Intent(android.provider.Settings.ACTION_HOME_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    }
+                )
+
+                val hasUsage = appsRepository.hasUsageAccess()
+                SettingRow(
+                    label = if (hasUsage) "Done - Usage Access" else "Grant Usage Access",
+                    value = "Required to track screen time",
+                    onClick = {
+                        val intent = Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    }
+                )
+
+                val hasNotificationListener = appsRepository.hasNotificationListenerAccess()
+                SettingRow(
+                    label = if (hasNotificationListener) "Done - Notification Listener" else "Grant Notification Listener",
+                    value = "Required for notification batching",
+                    onClick = {
+                        val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    }
+                )
+
+                val hasNotificationPerm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                } else true
+
+                SettingRow(
+                    label = if (hasNotificationPerm) "Done - Notification Permission" else "Grant Notification Permission",
+                    value = "Required to show alerts",
+                    onClick = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val intent = Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(intent)
+                        }
+                    }
+                )
+
+                val hasPrivacy = uiState.settings.onboardingComplete
+                SettingRow(
+                    label = if (hasPrivacy) "Done - Privacy Policy" else "Review Privacy Policy",
+                    value = "Your data stays on your device.",
+                    onClick = onCompleteSetup
+                )
+                
+                Spacer(Modifier.height(36.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun LifecycleResumeEffect(onResumed: () -> Unit) {
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val currentOnResumed by androidx.compose.runtime.rememberUpdatedState(onResumed)
+
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                currentOnResumed()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 }

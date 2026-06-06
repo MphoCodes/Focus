@@ -35,8 +35,9 @@ enum class LauncherScreen {
     Privacy,
     FocusMode,
     DefaultHome,
-    Stats
-    ,DataManagement
+    Stats,
+    DataManagement,
+    Setup
 }
 
 data class LauncherUiState(

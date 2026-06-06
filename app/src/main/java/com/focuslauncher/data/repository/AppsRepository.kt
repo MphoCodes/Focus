@@ -121,4 +121,10 @@ class AppsRepository(private val context: Context) {
     private companion object {
         const val TAG = "AppsRepository"
     }
+
+    fun isDefaultLauncher(): Boolean {
+        val intent = android.content.Intent(android.content.Intent.ACTION_MAIN).apply { addCategory(android.content.Intent.CATEGORY_HOME) }
+        val resolveInfo = context.packageManager.resolveActivity(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+        return resolveInfo?.activityInfo?.packageName == context.packageName
+    }
 }
