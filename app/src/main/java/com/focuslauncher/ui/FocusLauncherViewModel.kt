@@ -48,11 +48,17 @@ data class LauncherUiState(
     val settings: LauncherSettings = LauncherSettings(),
     val pendingPromptApp: InstalledApp? = null,
     val quotaBlock: QuotaBlock? = null,
+    val quotaUsages: Map<String, Long> = emptyMap(),
     val usageAccessGranted: Boolean = false,
     val notificationListenerAccessGranted: Boolean = false,
     val activeContextProfileId: String = "default",
     val currentWifiSsid: String? = null,
     val loading: Boolean = true
+)
+
+data class QuotaState(
+    val block: QuotaBlock? = null,
+    val usages: Map<String, Long> = emptyMap()
 )
 
 data class QuotaBlock(
@@ -79,7 +85,7 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
     private val searchQuery = MutableStateFlow("")
     private val screen = MutableStateFlow(LauncherScreen.Home)
     private val pendingPromptApp = MutableStateFlow<InstalledApp?>(null)
-    private val quotaBlock = MutableStateFlow<QuotaBlock?>(null)
+    private val quotaState = MutableStateFlow(QuotaState())
     private val systemAccess = MutableStateFlow(SystemAccess())
     private val contextSignal = MutableStateFlow(ContextSignal())
     private val loading = MutableStateFlow(true)
@@ -142,13 +148,14 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         )
     }
 
-    val uiState = combine(baseUiState, loading, quotaBlock, systemAccess, contextSignal) { state, isLoading, currentQuotaBlock, access, signal ->
+    val uiState = combine(baseUiState, loading, quotaState, systemAccess, contextSignal) { state, isLoading, currentQuotaState, access, signal ->
         val activeProfileId = resolveActiveContextProfile(state.settings, signal)
         state.copy(
             visibleApps = applyContextProfile(state.visibleApps, state.settings, activeProfileId),
             favoriteApps = applyContextProfile(state.favoriteApps, state.settings, activeProfileId),
             loading = isLoading,
-            quotaBlock = currentQuotaBlock,
+            quotaBlock = currentQuotaState.block,
+            quotaUsages = currentQuotaState.usages,
             usageAccessGranted = access.usageAccessGranted,
             notificationListenerAccessGranted = access.notificationListenerAccessGranted,
             activeContextProfileId = activeProfileId,
@@ -421,7 +428,56 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun dismissQuotaBlock() {
-        quotaBlock.value = null
+        quotaState.value = quotaState.value.copy(block = null)
+    }
+
+    fun checkActiveAppQuotas() {
+        viewModelScope.launch {
+            val quotas = uiState.value.settings.appDailyQuotaMinutes
+            if (quotas.isEmpty()) return@launch
+            if (!appsRepository.hasUsageAccess()) return@launch
+
+            val apps = installedApps.value
+            for ((appId, minutes) in quotas) {
+                if (minutes <= 0) continue
+                val app = apps.find { it.id == appId } ?: continue
+                val usedMillis = withContext(Dispatchers.IO) {
+                    appsRepository.getTodayUsageMillis(app.packageName)
+                }
+                if (usedMillis >= minutes * 60_000L) {
+                    quotaState.value = quotaState.value.copy(
+                        block = QuotaBlock(
+                            app = app,
+                            quotaMinutes = minutes,
+                            usedMillis = usedMillis,
+                            requiresUsageAccess = false
+                        )
+                    )
+                    break
+                }
+            }
+        }
+    }
+
+    fun refreshQuotaUsages() {
+        viewModelScope.launch {
+            if (!appsRepository.hasUsageAccess()) return@launch
+            val usages = mutableMapOf<String, Long>()
+            val quotas = uiState.value.settings.appDailyQuotaMinutes
+            val apps = installedApps.value
+            for ((appId, minutes) in quotas) {
+                if (minutes > 0) {
+                    val app = apps.find { it.id == appId }
+                    if (app != null) {
+                        val used = withContext(Dispatchers.IO) {
+                            appsRepository.getTodayUsageMillis(app.packageName)
+                        }
+                        usages[appId] = used
+                    }
+                }
+            }
+            quotaState.value = quotaState.value.copy(usages = usages)
+        }
     }
 
     fun refreshUsageAccess() {
@@ -455,11 +511,13 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         val hasUsageAccess = appsRepository.hasUsageAccess()
         systemAccess.value = systemAccess.value.copy(usageAccessGranted = hasUsageAccess)
         if (!hasUsageAccess) {
-            quotaBlock.value = QuotaBlock(
-                app = app,
-                quotaMinutes = quotaMinutes,
-                usedMillis = 0L,
-                requiresUsageAccess = true
+            quotaState.value = quotaState.value.copy(
+                block = QuotaBlock(
+                    app = app,
+                    quotaMinutes = quotaMinutes,
+                    usedMillis = 0L,
+                    requiresUsageAccess = true
+                )
             )
             return true
         }
@@ -468,11 +526,13 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
             appsRepository.getTodayUsageMillis(app.packageName)
         }
         if (usedMillis >= quotaMinutes * 60_000L) {
-            quotaBlock.value = QuotaBlock(
-                app = app,
-                quotaMinutes = quotaMinutes,
-                usedMillis = usedMillis,
-                requiresUsageAccess = false
+            quotaState.value = quotaState.value.copy(
+                block = QuotaBlock(
+                    app = app,
+                    quotaMinutes = quotaMinutes,
+                    usedMillis = usedMillis,
+                    requiresUsageAccess = false
+                )
             )
             return true
         }

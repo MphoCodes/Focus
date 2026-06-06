@@ -87,12 +87,28 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import com.focuslauncher.ui.theme.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.runtime.DisposableEffect
 
 @Composable
 fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pendingPromptApp = uiState.pendingPromptApp
     val quotaBlock = uiState.quotaBlock
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.checkActiveAppQuotas()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
     val context = LocalContext.current
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -312,6 +328,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             onSearchChange = viewModel::updateSearch,
                             onCycleQuota = viewModel::cycleAppDailyQuota,
                             onOpenUsageAccess = viewModel::openUsageAccessSettings,
+                            onRefreshUsages = viewModel::refreshQuotaUsages,
                             onNavigate = viewModel::navigateTo,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
@@ -856,10 +873,17 @@ private fun AppQuotaScreen(
     onSearchChange: (String) -> Unit,
     onCycleQuota: (InstalledApp) -> Unit,
     onOpenUsageAccess: () -> Unit,
+    onRefreshUsages: () -> Unit,
     onNavigate: (LauncherScreen) -> Unit,
     onMenuClick: () -> Unit
 ) {
     FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.Quotas, showBack = true, onNavigate = onNavigate, onMenuClick = onMenuClick) {
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            while (true) {
+                onRefreshUsages()
+                kotlinx.coroutines.delay(5_000)
+            }
+        }
         val apps = selectorApps(uiState, includeHidden = true)
         LazyColumn(Modifier.fillMaxSize()) {
             item {
@@ -892,9 +916,12 @@ private fun AppQuotaScreen(
             }
 
             items(apps, key = { it.id }) { app ->
+                val minutes = uiState.settings.appDailyQuotaMinutes[app.id] ?: 0
+                val usedMillis = uiState.quotaUsages[app.id] ?: 0L
                 QuotaRow(
                     label = appDisplayLabel(app, uiState.settings),
-                    minutes = uiState.settings.appDailyQuotaMinutes[app.id] ?: 0,
+                    minutes = minutes,
+                    usedMillis = usedMillis,
                     onClick = { onCycleQuota(app) }
                 )
             }
@@ -1789,7 +1816,7 @@ private fun DisguiseRow(app: InstalledApp, value: String, onValueChange: (String
 }
 
 @Composable
-private fun QuotaRow(label: String, minutes: Int, onClick: () -> Unit) {
+private fun QuotaRow(label: String, minutes: Int, usedMillis: Long = 0L, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1805,15 +1832,20 @@ private fun QuotaRow(label: String, minutes: Int, onClick: () -> Unit) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
+        val usageText = if (minutes <= 0) {
+            stringResource(R.string.quotas_off)
+        } else {
+            val usedMinutes = formatUsageMinutes(usedMillis)
+            "$usedMinutes / ${stringResource(R.string.quotas_minutes, minutes)}"
+        }
         Text(
-            text = if (minutes <= 0) stringResource(R.string.quotas_off) else stringResource(R.string.quotas_minutes, minutes),
+            text = usageText,
             color = if (minutes <= 0) FocusMuted else LocalFocusPrimary.current,
             fontFamily = FontFamily.Monospace,
             fontSize = 11.sp
         )
     }
 }
-
 @Composable
 private fun ProfileWifiField(label: String, value: String, onValueChange: (String) -> Unit) {
     Column(
