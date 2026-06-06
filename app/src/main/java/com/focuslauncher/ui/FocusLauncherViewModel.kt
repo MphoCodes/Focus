@@ -36,6 +36,7 @@ enum class LauncherScreen {
     FocusMode,
     DefaultHome,
     Stats
+    ,DataManagement
 }
 
 data class LauncherUiState(
@@ -399,6 +400,22 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
 
     fun openNotificationListenerSettings() {
         appsRepository.openNotificationListenerSettings()
+    }
+
+    fun clearIntentLogs() {
+        viewModelScope.launch { settingsRepository.clearIntentLogs() }
+    }
+
+    fun clearStats() {
+        viewModelScope.launch { settingsRepository.clearStats() }
+    }
+
+    fun clearPendingNotifications() {
+        viewModelScope.launch { settingsRepository.clearBatchedNotificationCounts() }
+    }
+
+    fun clearAllSettings() {
+        viewModelScope.launch { settingsRepository.clearAllSettings() }
     }
 
     fun dismissQuotaBlock() {

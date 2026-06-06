@@ -391,6 +391,15 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
 
+                        LauncherScreen.DataManagement -> DataManagementScreen(
+                            onClearIntentLogs = viewModel::clearIntentLogs,
+                            onClearStats = viewModel::clearStats,
+                            onClearPendingNotifications = viewModel::clearPendingNotifications,
+                            onClearAllSettings = viewModel::clearAllSettings,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
                         LauncherScreen.FocusMode -> FocusModeScreen(
                             uiState = uiState,
                             onSearchChange = viewModel::updateSearch,
@@ -1134,6 +1143,8 @@ private fun PrivacyScreen(
                     heading = stringResource(R.string.privacy_section_deletion),
                     body = stringResource(R.string.privacy_deletion_body)
                 )
+                Spacer(Modifier.height(16.dp))
+                SettingRow(label = "Data Management", value = "", onClick = { onNavigate(LauncherScreen.DataManagement) })
                 Spacer(Modifier.height(28.dp))
             }
         }
@@ -2169,6 +2180,65 @@ private fun StatsScreen(
                     }
                 }
                 Spacer(Modifier.height(28.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun DataManagementScreen(
+    onClearIntentLogs: () -> Unit,
+    onClearStats: () -> Unit,
+    onClearPendingNotifications: () -> Unit,
+    onClearAllSettings: () -> Unit,
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
+) {
+    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.DataManagement, showBack = true, onNavigate = onNavigate, onMenuClick = onMenuClick) {
+        var showConfirmDialog by remember { mutableStateOf<(() -> Unit)?>(null) }
+
+        LazyColumn(Modifier.fillMaxSize()) {
+            item {
+                Text(
+                    text = "Data Management",
+                    color = LocalFocusPrimary.current,
+                    fontSize = 22.sp,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Manage your local data or clear it completely.",
+                    color = FocusSecondary,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp
+                )
+                Spacer(Modifier.height(24.dp))
+
+                SettingRow(label = "Clear Intent Logs", value = "", onClick = { showConfirmDialog = onClearIntentLogs })
+                SettingRow(label = "Clear Stats & Quotas", value = "", onClick = { showConfirmDialog = onClearStats })
+                SettingRow(label = "Clear Pending Notifications", value = "", onClick = { showConfirmDialog = onClearPendingNotifications })
+                Spacer(Modifier.height(24.dp))
+                SettingsSection("DANGER ZONE")
+                SettingRow(label = "Clear All Settings", value = "", onClick = { showConfirmDialog = onClearAllSettings })
+                Spacer(Modifier.height(28.dp))
+            }
+        }
+
+        if (showConfirmDialog != null) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.8f)),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                Column(Modifier.background(LocalFocusBackground.current).padding(24.dp)) {
+                    Text("Are you sure? This action is destructive.", color = LocalFocusPrimary.current, fontSize = 16.sp)
+                    Spacer(Modifier.height(24.dp))
+                    FocusButton(text = "Confirm", onClick = {
+                        showConfirmDialog?.invoke()
+                        showConfirmDialog = null
+                    })
+                    Spacer(Modifier.height(12.dp))
+                    GhostButton(text = "Cancel", onClick = { showConfirmDialog = null })
+                }
             }
         }
     }
