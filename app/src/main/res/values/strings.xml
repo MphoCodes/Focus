@@ -172,4 +172,5 @@
 
     <!-- General/Misc -->
     <string name="header_back">&lt;</string>
+    <string name="privacy_policy_title">Privacy Policy</string>
 </resources>
