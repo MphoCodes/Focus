@@ -60,7 +60,7 @@ data class QuotaBlock(
     val requiresUsageAccess: Boolean
 )
 
-private data class ContextSignal(
+internal data class ContextSignal(
     val now: LocalDateTime = LocalDateTime.now(),
     val wifiSsid: String? = null
 )
@@ -429,7 +429,7 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    private suspend fun blockIfQuotaExceeded(app: InstalledApp): Boolean {
+    internal suspend fun blockIfQuotaExceeded(app: InstalledApp): Boolean {
         val quotaMinutes = uiState.value.settings.appDailyQuotaMinutes[app.id] ?: return false
         if (quotaMinutes <= 0) return false
 
@@ -486,7 +486,7 @@ private fun profileAppIds(settings: LauncherSettings, profileId: String): Set<St
     }
 }
 
-private fun resolveActiveContextProfile(settings: LauncherSettings, signal: ContextSignal): String {
+internal fun resolveActiveContextProfile(settings: LauncherSettings, signal: ContextSignal): String {
     if (!settings.contextProfilesEnabled) return "default"
     if (!settings.contextProfilesAutoSwitch) return settings.manualContextProfileId
 

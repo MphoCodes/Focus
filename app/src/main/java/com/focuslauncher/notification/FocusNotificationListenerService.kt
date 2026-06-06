@@ -114,7 +114,7 @@ class FocusNotificationListenerService : NotificationListenerService() {
         notificationManager.createNotificationChannel(channel)
     }
 
-    private fun currentBatchToken(now: LocalDateTime = LocalDateTime.now()): String? {
+    internal fun currentBatchToken(now: LocalDateTime = LocalDateTime.now()): String? {
         val slot = when {
             now.hour >= 18 -> "18"
             now.hour >= 12 -> "12"
