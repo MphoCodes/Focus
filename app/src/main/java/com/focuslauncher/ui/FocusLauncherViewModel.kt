@@ -50,6 +50,7 @@ data class LauncherUiState(
     val usageAccessGranted: Boolean = false,
     val notificationListenerAccessGranted: Boolean = false,
     val activeContextProfileId: String = "default",
+    val currentWifiSsid: String? = null,
     val loading: Boolean = true
 )
 
@@ -149,7 +150,8 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
             quotaBlock = currentQuotaBlock,
             usageAccessGranted = access.usageAccessGranted,
             notificationListenerAccessGranted = access.notificationListenerAccessGranted,
-            activeContextProfileId = activeProfileId
+            activeContextProfileId = activeProfileId,
+            currentWifiSsid = signal.wifiSsid
         )
     }.stateIn(
         scope = viewModelScope,

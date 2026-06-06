@@ -100,6 +100,9 @@
     <string name="profiles_manual">Manual profile</string>
     <string name="profiles_section_apps">PROFILE APPS</string>
     <string name="profiles_section_wifi">WI-FI TRIGGERS</string>
+    <string name="profiles_current_wifi">Current Wi-Fi</string>
+    <string name="profiles_wifi_hidden_or_disconnected">Unavailable (Hidden or Disconnected)</string>
+    <string name="profiles_wifi_hidden_warning">Android may hide the Wi-Fi SSID unless Location permissions are granted. If triggers fail, ensure Location is enabled or use Time/Day fallback.</string>
     <string name="profiles_work">Work</string>
     <string name="profiles_home">Home</string>
     <string name="profiles_weekend">Weekend</string>
