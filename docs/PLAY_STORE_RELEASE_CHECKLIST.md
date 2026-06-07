@@ -37,13 +37,14 @@ base64 -i secrets/focus-upload-keystore.jks | pbcopy
 
 - App name: Focus Launcher
 - Short description: Minimalist Android launcher for reducing distraction.
-- Long description: Mention minimalist launcher, app disguises, focus prompts, app quotas, contextual profiles, local-only settings, and notification batching.
+- Long description: Use `docs/PLAY_STORE_LISTING.md` and keep claims aligned with shipped app behavior.
 - Screenshots for phone form factor.
 - High-resolution icon.
 - Feature graphic.
 - Content rating questionnaire.
 - Target audience and app category.
 - Public privacy policy URL: `https://mphocodes.github.io/Focus/privacy-policy/`.
+- Listing copy and data safety draft: `docs/PLAY_STORE_LISTING.md`.
 
 ## Data Safety Declarations
 
