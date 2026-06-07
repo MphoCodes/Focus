@@ -172,4 +172,30 @@
 
     <!-- General/Misc -->
     <string name="header_back">&lt;</string>
+
+    <!-- New Strings -->
+    <string name="zero_apps_active">Zero-Apps Schedule is active</string>
+    <string name="apps_search_web">Search Web for \'%1$s\'</string>
+    <string name="settings_section_system_integration">SYSTEM INTEGRATION</string>
+    <string name="settings_grayscale">Grayscale (E-Ink) Mode</string>
+    <string name="settings_zero_apps">Zero-Apps Schedule (22:00 - 07:00)</string>
+    <string name="settings_theme_accent">Theme Accent</string>
+    <string name="intent_prompt_type_unlock">Type your intent to unlock.</string>
+    <string name="intent_prompt_placeholder">I am opening this because...</string>
+    <string name="intent_prompt_recent">Recent Intents</string>
+    <string name="stats_header">DIGITAL STOICISM</string>
+    <string name="stats_subheader">A minimalist environment for reclaiming attention.</string>
+    <string name="stats_no_deflections">No deflections yet.</string>
+    <string name="stats_no_launches">No launches yet.</string>
+    <string name="nav_notifications">Notifications</string>
+    <string name="nav_privacy">Privacy</string>
+    <string name="nav_stats">Stats</string>
+    <string name="app_logo">FOCUS</string>
+    <string name="cd_menu">Menu</string>
+    <string name="stats_deflections_title">FRICTION DEFLECTIONS</string>
+    <string name="stats_launches_title">LAUNCH VELOCITY</string>
+    <string name="notification_summary">%1$d notifications: %2$s</string>
+    <string name="notification_summary_title">Focus notification summary</string>
+    <string name="notification_channel_name">Focus summaries</string>
+    <string name="profiles_default">Default</string>
 </resources>

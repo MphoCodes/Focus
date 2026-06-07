@@ -73,9 +73,9 @@ class FocusNotificationListenerService : NotificationListenerService() {
             SUMMARY_NOTIFICATION_ID,
             Notification.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher)
-                .setContentTitle("Focus notification summary")
-                .setContentText("$total notifications: $summary")
-                .setStyle(Notification.BigTextStyle().bigText("$total notifications: $summary"))
+                .setContentTitle(getString(R.string.notification_summary_title))
+                .setContentText(getString(R.string.notification_summary, total, summary))
+                .setStyle(Notification.BigTextStyle().bigText(getString(R.string.notification_summary, total, summary)))
                 .setContentIntent(mainActivityIntent())
                 .setAutoCancel(true)
                 .build()
@@ -108,7 +108,7 @@ class FocusNotificationListenerService : NotificationListenerService() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Focus summaries",
+            getString(R.string.notification_channel_name),
             NotificationManager.IMPORTANCE_DEFAULT
         )
         notificationManager.createNotificationChannel(channel)

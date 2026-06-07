@@ -86,15 +86,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
-private val FocusBackground = Color(0xFF000000) // Mockup has pure black backgrounds
-private val LocalFocusPrimary = androidx.compose.runtime.compositionLocalOf { Color(0xFFFFFFFF) }
-private val FocusSecondary = Color(0xFF8E8E8E) // Clean medium gray
-private val FocusMuted = Color(0xFF4E4E4E) // Darker gray for less contrast elements
-private val FocusDivider = Color(0xFF161616) // Subtle dividers
-private val FocusInput = Color(0xFF0F0F0F) // Lighter box for inputs
-
-private val LocalFocusBackground = androidx.compose.runtime.compositionLocalOf { Color(0xFF000000) }
-private val LocalTextSizeMultiplier = androidx.compose.runtime.compositionLocalOf { 1.0f }
+import com.focuslauncher.ui.theme.*
 
 @Composable
 fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
@@ -172,7 +164,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             .padding(horizontal = 24.dp, vertical = 24.dp)
                     ) {
                         Text(
-                            text = "FOCUS",
+                            text = stringResource(R.string.app_logo),
                             color = LocalFocusPrimary.current,
                             fontFamily = FontFamily.Monospace,
                             fontSize = 18.sp,
@@ -193,19 +185,19 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                         Spacer(modifier = Modifier.height(24.dp))
 
                         val navItems = listOf(
-                            "Home" to LauncherScreen.Home,
-                            "Apps" to LauncherScreen.Apps,
-                            "Settings" to LauncherScreen.Settings,
-                            "Favourite apps" to LauncherScreen.Favorites,
-                            "Hidden apps" to LauncherScreen.Hidden,
-                            "App disguises" to LauncherScreen.Disguises,
-                            "App time quotas" to LauncherScreen.Quotas,
-                            "Context profiles" to LauncherScreen.ContextProfiles,
-                            "Notifications" to LauncherScreen.Notifications,
-                            "Privacy" to LauncherScreen.Privacy,
-                            "Focus mode" to LauncherScreen.FocusMode,
-                            "Set as default" to LauncherScreen.DefaultHome,
-                            "Stats" to LauncherScreen.Stats
+                            stringResource(R.string.nav_home) to LauncherScreen.Home,
+                            stringResource(R.string.nav_apps) to LauncherScreen.Apps,
+                            stringResource(R.string.nav_settings) to LauncherScreen.Settings,
+                            stringResource(R.string.settings_fav_apps) to LauncherScreen.Favorites,
+                            stringResource(R.string.settings_hidden_apps) to LauncherScreen.Hidden,
+                            stringResource(R.string.settings_app_disguises) to LauncherScreen.Disguises,
+                            stringResource(R.string.settings_app_time_quotas) to LauncherScreen.Quotas,
+                            stringResource(R.string.settings_context_profiles) to LauncherScreen.ContextProfiles,
+                            stringResource(R.string.nav_notifications) to LauncherScreen.Notifications,
+                            stringResource(R.string.nav_privacy) to LauncherScreen.Privacy,
+                            stringResource(R.string.settings_focus_mode) to LauncherScreen.FocusMode,
+                            stringResource(R.string.settings_set_default) to LauncherScreen.DefaultHome,
+                            stringResource(R.string.nav_stats) to LauncherScreen.Stats
                         )
 
                         navItems.forEach { (label, screen) ->
@@ -531,7 +523,7 @@ private fun HomeScreen(
             Spacer(Modifier.height(8.dp))
             val homeList = if (uiState.searchQuery.isBlank()) uiState.favoriteApps else uiState.visibleApps
             if (isZeroAppsActive) {
-                MutedEmptyText("Zero-Apps Schedule is active")
+                MutedEmptyText(stringResource(R.string.zero_apps_active))
             } else if (homeList.isEmpty()) {
                 MutedEmptyText(
                     if (uiState.searchQuery.isBlank()) stringResource(R.string.home_no_favorites) else stringResource(R.string.home_no_apps_found)
@@ -595,7 +587,7 @@ private fun AppsScreen(
             val context = LocalContext.current
             LazyColumn(Modifier.fillMaxSize()) {
                 if (isZeroAppsActive) {
-                    item { MutedEmptyText("Zero-Apps Schedule is active") }
+                    item { MutedEmptyText(stringResource(R.string.zero_apps_active)) }
                 } else {
                     items(uiState.visibleApps, key = { it.id }) { app ->
                         AppRow(label = appDisplayLabel(app, uiState.settings), onClick = { onOpenApp(app) }, onLongClick = { onOpenAppInfo(app) })
@@ -605,7 +597,7 @@ private fun AppsScreen(
                     } else if (uiState.visibleApps.isEmpty()) {
                         if (uiState.searchQuery.isNotBlank()) {
                             item {
-                                AppRow(label = "Search Web for '${uiState.searchQuery}'", onClick = {
+                                AppRow(label = stringResource(R.string.apps_search_web, uiState.searchQuery), onClick = {
                                     val intent = Intent(Intent.ACTION_WEB_SEARCH).apply {
                                         putExtra(SearchManager.QUERY, uiState.searchQuery)
                                     }
@@ -711,14 +703,14 @@ private fun SettingsScreen(
                 )
                 Spacer(Modifier.height(28.dp))
 
-                SettingsSection("SYSTEM INTEGRATION")
+                SettingsSection(stringResource(R.string.settings_section_system_integration))
                 ToggleRow(
-                    label = "Grayscale (E-Ink) Mode",
+                    label = stringResource(R.string.settings_grayscale),
                     selected = uiState.settings.grayscaleEnabled,
                     onClick = onToggleGrayscale
                 )
                 ToggleRow(
-                    label = "Zero-Apps Schedule (22:00 - 07:00)",
+                    label = stringResource(R.string.settings_zero_apps),
                     selected = uiState.settings.zeroAppsScheduleEnabled,
                     onClick = onToggleZeroApps
                 )
@@ -736,7 +728,7 @@ private fun SettingsScreen(
                     onClick = onCycleTextSize
                 )
                 SettingRow(
-                    label = "Theme Accent",
+                    label = stringResource(R.string.settings_theme_accent),
                     value = uiState.settings.themeAccent,
                     onClick = onCycleThemeAccent
                 )
@@ -1325,7 +1317,7 @@ private fun IntentPromptScreen(
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            text = "Type your intent to unlock.",
+            text = stringResource(R.string.intent_prompt_type_unlock),
             color = FocusMuted,
             fontSize = 12.sp
         )
@@ -1341,14 +1333,14 @@ private fun IntentPromptScreen(
                 .padding(12.dp),
             decorationBox = { innerTextField ->
                 if (typedIntent.isEmpty()) {
-                    Text("I am opening this because...", color = FocusSecondary, fontSize = 16.sp)
+                    Text(stringResource(R.string.intent_prompt_placeholder), color = FocusSecondary, fontSize = 16.sp)
                 }
                 innerTextField()
             }
         )
         Spacer(Modifier.height(16.dp))
         
-        Text(text = "Recent Intents", color = FocusSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text(text = stringResource(R.string.intent_prompt_recent), color = FocusSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Column(Modifier.fillMaxWidth()) {
             uiState.settings.intentLogs.take(3).forEach { log ->
@@ -1481,7 +1473,7 @@ private fun Header(
     ) {
         if (selectedScreen == LauncherScreen.DefaultHome) {
             Text(
-                text = "FOCUS",
+                text = stringResource(R.string.app_logo),
                 color = LocalFocusPrimary.current,
                 fontFamily = FontFamily.Monospace,
                 fontSize = 11.sp,
@@ -1491,7 +1483,7 @@ private fun Header(
             )
             Icon(
                 imageVector = Icons.Default.Menu,
-                contentDescription = "Menu",
+                contentDescription = stringResource(R.string.cd_menu),
                 tint = LocalFocusPrimary.current,
                 modifier = Modifier
                     .size(18.dp)
@@ -1514,7 +1506,7 @@ private fun Header(
                 } else {
                     Icon(
                         imageVector = Icons.Default.Menu,
-                        contentDescription = "Menu",
+                        contentDescription = stringResource(R.string.cd_menu),
                         tint = LocalFocusPrimary.current,
                         modifier = Modifier
                             .size(18.dp)
@@ -1524,7 +1516,7 @@ private fun Header(
             }
 
             Text(
-                text = "FOCUS",
+                text = stringResource(R.string.app_logo),
                 color = LocalFocusPrimary.current,
                 fontFamily = FontFamily.Monospace,
                 fontSize = 11.sp,
@@ -1561,14 +1553,14 @@ private fun TopMark(onMenuClick: () -> Unit) {
     ) {
         Icon(
             imageVector = Icons.Default.Menu,
-            contentDescription = "Menu",
+            contentDescription = stringResource(R.string.cd_menu),
             tint = LocalFocusPrimary.current,
             modifier = Modifier
                 .size(18.dp)
                 .clickable { onMenuClick() }
         )
         Text(
-            text = "FOCUS",
+            text = stringResource(R.string.app_logo),
             color = LocalFocusPrimary.current,
             fontFamily = FontFamily.Monospace,
             fontSize = 11.sp,
@@ -2089,12 +2081,13 @@ private fun formatUsageMinutes(usedMillis: Long): Int {
     return (usedMillis / 60_000L).coerceAtLeast(0L).toInt()
 }
 
+@Composable
 private fun displayProfileName(profileId: String): String {
     return when (profileId) {
-        "work" -> "Work"
-        "home" -> "Home"
-        "weekend" -> "Weekend"
-        else -> "Default"
+        "work" -> stringResource(R.string.profiles_work)
+        "home" -> stringResource(R.string.profiles_home)
+        "weekend" -> stringResource(R.string.profiles_weekend)
+        else -> stringResource(R.string.profiles_default)
     }
 }
 
@@ -2131,23 +2124,23 @@ private fun StatsScreen(
         LazyColumn(Modifier.fillMaxSize()) {
             item {
                 Text(
-                    text = "DIGITAL STOICISM",
+                    text = stringResource(R.string.stats_header),
                     color = LocalFocusPrimary.current,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "A minimalist environment for reclaiming attention.",
+                    text = stringResource(R.string.stats_subheader),
                     color = LocalFocusPrimary.current,
                     fontSize = 14.sp,
                 )
                 Spacer(Modifier.height(28.dp))
                 
-                SettingsSection("FRICTION DEFLECTIONS")
+                SettingsSection(stringResource(R.string.stats_deflections_title))
                 val deflections = uiState.settings.appDeflectionCounts
                 if (deflections.isEmpty()) {
-                    MutedEmptyText("No deflections yet.")
+                    MutedEmptyText(stringResource(R.string.stats_no_deflections))
                 } else {
                     deflections.entries.sortedByDescending { it.value }.forEach { (pkg, count) ->
                         val app = uiState.installedApps.find { it.packageName == pkg }
@@ -2157,10 +2150,10 @@ private fun StatsScreen(
                 }
                 Spacer(Modifier.height(28.dp))
                 
-                SettingsSection("LAUNCH VELOCITY")
+                SettingsSection(stringResource(R.string.stats_launches_title))
                 val launches = uiState.settings.appLaunchCounts
                 if (launches.isEmpty()) {
-                    MutedEmptyText("No launches yet.")
+                    MutedEmptyText(stringResource(R.string.stats_no_launches))
                 } else {
                     launches.entries.sortedByDescending { it.value }.forEach { (pkg, count) ->
                         val app = uiState.installedApps.find { it.packageName == pkg }
