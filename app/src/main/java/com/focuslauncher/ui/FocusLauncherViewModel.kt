@@ -10,6 +10,7 @@ import com.focuslauncher.data.model.TextSize
 import com.focuslauncher.data.model.ThemeAccent
 import com.focuslauncher.data.model.ProfileId
 import com.focuslauncher.data.model.QuotaPresets
+import com.focuslauncher.data.model.Workspace
 import com.focuslauncher.data.repository.AppsRepository
 import com.focuslauncher.data.repository.SettingsRepository
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +33,9 @@ enum class LauncherScreen {
     Disguises,
     Quotas,
     ContextProfiles,
+    Workspaces,
+    WorkspaceDetail,
+    WorkspaceApps,
     WorkProfileApps,
     HomeProfileApps,
     WeekendProfileApps,
@@ -55,6 +59,8 @@ data class LauncherUiState(
     val pendingPromptApp: InstalledApp? = null,
     val quotaBlock: QuotaBlock? = null,
     val quotaUsages: Map<String, Long> = emptyMap(),
+    val selectedWorkspaceId: String? = null,
+    val selectedWorkspace: Workspace? = null,
     val usageAccessGranted: Boolean = false,
     val notificationListenerAccessGranted: Boolean = false,
     val activeContextProfileId: ProfileId = ProfileId.DEFAULT,
@@ -91,6 +97,7 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
     private val searchQuery = MutableStateFlow("")
     private val screen = MutableStateFlow(LauncherScreen.Home)
     private val pendingPromptApp = MutableStateFlow<InstalledApp?>(null)
+    private val selectedWorkspaceId = MutableStateFlow<String?>(null)
     private val quotaState = MutableStateFlow(QuotaState())
     private val systemAccess = MutableStateFlow(SystemAccess())
     private val contextSignal = MutableStateFlow(ContextSignal())
@@ -154,11 +161,19 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         )
     }
 
-    val uiState = combine(baseUiState, loading, quotaState, systemAccess, contextSignal) { state, isLoading, currentQuotaState, access, signal ->
+    val uiState = combine(baseUiState, loading, quotaState, systemAccess, contextSignal, selectedWorkspaceId) { values ->
+        val state = values[0] as LauncherUiState
+        val isLoading = values[1] as Boolean
+        val currentQuotaState = values[2] as QuotaState
+        val access = values[3] as SystemAccess
+        val signal = values[4] as ContextSignal
+        val workspaceId = values[5] as String?
         val activeProfileId = resolveActiveContextProfile(state.settings, signal)
         state.copy(
             visibleApps = applyContextProfile(state.visibleApps, state.settings, activeProfileId),
             favoriteApps = applyContextProfile(state.favoriteApps, state.settings, activeProfileId),
+            selectedWorkspaceId = workspaceId,
+            selectedWorkspace = state.settings.workspaces.firstOrNull { it.id == workspaceId },
             loading = isLoading,
             quotaBlock = currentQuotaState.block,
             quotaUsages = currentQuotaState.usages,
@@ -196,7 +211,22 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
     fun navigateTo(target: LauncherScreen) {
         screen.value = target
         searchQuery.value = ""
+        if (target != LauncherScreen.WorkspaceDetail && target != LauncherScreen.WorkspaceApps) {
+            selectedWorkspaceId.value = null
+        }
         refreshSystemAccess()
+    }
+
+    fun openWorkspace(workspace: Workspace) {
+        selectedWorkspaceId.value = workspace.id
+        screen.value = LauncherScreen.WorkspaceDetail
+        searchQuery.value = ""
+    }
+
+    fun openWorkspaceApps(workspace: Workspace) {
+        selectedWorkspaceId.value = workspace.id
+        screen.value = LauncherScreen.WorkspaceApps
+        searchQuery.value = ""
     }
 
     fun updateSearch(query: String) {
@@ -214,6 +244,17 @@ class FocusLauncherViewModel(application: Application) : AndroidViewModel(applic
         val current = uiState.value.settings.favoriteAppIds.toMutableSet()
         if (!current.add(app.id)) current.remove(app.id)
         viewModelScope.launch { settingsRepository.setFavoriteAppIds(current) }
+    }
+
+    fun toggleWorkspaceApp(app: InstalledApp) {
+        val workspaceId = selectedWorkspaceId.value ?: return
+        val workspaces = uiState.value.settings.workspaces.map { workspace ->
+            if (workspace.id != workspaceId) return@map workspace
+            val appIds = workspace.appIds.toMutableSet()
+            if (!appIds.add(app.id)) appIds.remove(app.id)
+            workspace.copy(appIds = appIds)
+        }
+        viewModelScope.launch { settingsRepository.setWorkspaces(workspaces) }
     }
 
     fun toggleHidden(app: InstalledApp) {

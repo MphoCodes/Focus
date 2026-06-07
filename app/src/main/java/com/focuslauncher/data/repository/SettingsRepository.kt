@@ -9,9 +9,11 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.focuslauncher.data.model.LauncherSettings
 import com.focuslauncher.data.model.AppOrder
+import com.focuslauncher.data.model.DefaultWorkspaces
 import com.focuslauncher.data.model.TextSize
 import com.focuslauncher.data.model.ThemeAccent
 import com.focuslauncher.data.model.ProfileId
+import com.focuslauncher.data.model.Workspace
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -24,6 +26,7 @@ class SettingsRepository(context: Context) {
         LauncherSettings(
             onboardingComplete = preferences[Keys.ONBOARDING_COMPLETE] ?: false,
             favoriteAppIds = preferences[Keys.FAVORITE_APPS].orEmpty(),
+            workspaces = WorkspaceSerializer.decode(preferences[Keys.WORKSPACES].orEmpty()),
             hiddenAppIds = preferences[Keys.HIDDEN_APPS].orEmpty(),
             intentPromptAppIds = preferences[Keys.INTENT_PROMPT_APPS].orEmpty(),
             focusPauseSeconds = preferences[Keys.FOCUS_PAUSE_SECONDS] ?: 5,
@@ -63,6 +66,10 @@ class SettingsRepository(context: Context) {
 
     suspend fun setFavoriteAppIds(ids: Set<String>) {
         dataStore.edit { it[Keys.FAVORITE_APPS] = ids }
+    }
+
+    suspend fun setWorkspaces(workspaces: List<Workspace>) {
+        dataStore.edit { it[Keys.WORKSPACES] = WorkspaceSerializer.encode(workspaces) }
     }
 
     suspend fun setHiddenAppIds(ids: Set<String>) {
@@ -240,6 +247,7 @@ class SettingsRepository(context: Context) {
     private object Keys {
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val FAVORITE_APPS = stringSetPreferencesKey("favorite_apps")
+        val WORKSPACES = stringSetPreferencesKey("workspaces")
         val HIDDEN_APPS = stringSetPreferencesKey("hidden_apps")
         val INTENT_PROMPT_APPS = stringSetPreferencesKey("intent_prompt_apps")
         val FOCUS_PAUSE_SECONDS = intPreferencesKey("focus_pause_seconds")
@@ -321,5 +329,79 @@ object AppDisguiseSerializer {
                 "${appId.length}:$appId$cleanedAlias"
             }
             .toSet()
+    }
+}
+
+object WorkspaceSerializer {
+    fun decode(encoded: Set<String>): List<Workspace> {
+        if (encoded.isEmpty()) return DefaultWorkspaces
+
+        val decoded = encoded
+            .mapNotNull { decodeEntry(it) }
+            .sortedBy { it.first }
+            .map { it.second }
+
+        if (decoded.isEmpty()) return DefaultWorkspaces
+
+        val decodedById = decoded.associateBy { it.id }
+        val mergedDefaults = DefaultWorkspaces.map { default ->
+            decodedById[default.id] ?: default
+        }
+        val customWorkspaces = decoded.filter { workspace ->
+            DefaultWorkspaces.none { it.id == workspace.id }
+        }
+
+        return mergedDefaults + customWorkspaces
+    }
+
+    fun encode(workspaces: List<Workspace>): Set<String> {
+        return workspaces.mapIndexedNotNull { index, workspace ->
+            val id = workspace.id.trim()
+            val name = workspace.name.trim()
+            if (id.isBlank() || name.isBlank()) return@mapIndexedNotNull null
+
+            val appIds = workspace.appIds
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .joinToString(",")
+            "%03d|%d:%s%d:%s%s".format(index, id.length, id, name.length, name, appIds)
+        }.toSet()
+    }
+
+    private fun decodeEntry(entry: String): Pair<Int, Workspace>? {
+        val separatorIndex = entry.indexOf('|')
+        if (separatorIndex <= 0 || separatorIndex == entry.lastIndex) return null
+
+        val order = entry.substring(0, separatorIndex).toIntOrNull() ?: return null
+        var cursor = separatorIndex + 1
+        val id = readLengthPrefixed(entry, cursor) ?: return null
+        cursor = id.second
+        val name = readLengthPrefixed(entry, cursor) ?: return null
+        cursor = name.second
+
+        val appIds = entry.substring(cursor)
+            .split(',')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .toSet()
+
+        val workspace = Workspace(
+            id = id.first,
+            name = name.first,
+            appIds = appIds
+        )
+        return order to workspace
+    }
+
+    private fun readLengthPrefixed(entry: String, startIndex: Int): Pair<String, Int>? {
+        val separatorIndex = entry.indexOf(':', startIndex)
+        if (separatorIndex <= startIndex) return null
+
+        val length = entry.substring(startIndex, separatorIndex).toIntOrNull() ?: return null
+        val valueStart = separatorIndex + 1
+        val valueEnd = valueStart + length
+        if (length <= 0 || valueEnd > entry.length) return null
+
+        return entry.substring(valueStart, valueEnd) to valueEnd
     }
 }

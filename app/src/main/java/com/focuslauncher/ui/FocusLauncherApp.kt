@@ -16,6 +16,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.Image
 import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -26,6 +28,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,16 +38,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ModalNavigationDrawer
@@ -61,8 +65,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.launch
 import androidx.compose.ui.text.TextStyle
@@ -79,13 +86,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.focuslauncher.R
 import com.focuslauncher.data.model.InstalledApp
+import com.focuslauncher.data.model.Workspace
 import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
 import com.focuslauncher.ui.theme.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -204,6 +210,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             stringResource(R.string.nav_home) to LauncherScreen.Home,
                             stringResource(R.string.nav_apps) to LauncherScreen.Apps,
                             stringResource(R.string.nav_settings) to LauncherScreen.Settings,
+                            stringResource(R.string.settings_workspaces) to LauncherScreen.Workspaces,
                             stringResource(R.string.settings_fav_apps) to LauncherScreen.Favorites,
                             stringResource(R.string.settings_hidden_apps) to LauncherScreen.Hidden,
                             stringResource(R.string.settings_app_disguises) to LauncherScreen.Disguises,
@@ -265,6 +272,7 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             onSearchChange = viewModel::updateSearch,
                             onOpenApp = viewModel::requestOpenApp,
                             onOpenAppInfo = viewModel::openAppInfo,
+                            onOpenWorkspace = viewModel::openWorkspace,
                             onNavigate = viewModel::navigateTo,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
@@ -306,6 +314,31 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
                             selectedIds = uiState.settings.favoriteAppIds,
                             onSearchChange = viewModel::updateSearch,
                             onToggleApp = viewModel::toggleFavorite,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.Workspaces -> WorkspacesScreen(
+                            uiState = uiState,
+                            onOpenWorkspaceApps = viewModel::openWorkspaceApps,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.WorkspaceDetail -> WorkspaceDetailScreen(
+                            uiState = uiState,
+                            onSearchChange = viewModel::updateSearch,
+                            onOpenApp = viewModel::requestOpenApp,
+                            onOpenAppInfo = viewModel::openAppInfo,
+                            onEditWorkspace = viewModel::openWorkspaceApps,
+                            onNavigate = viewModel::navigateTo,
+                            onMenuClick = { coroutineScope.launch { drawerState.open() } }
+                        )
+
+                        LauncherScreen.WorkspaceApps -> WorkspaceAppSelectorScreen(
+                            uiState = uiState,
+                            onSearchChange = viewModel::updateSearch,
+                            onToggleApp = viewModel::toggleWorkspaceApp,
                             onNavigate = viewModel::navigateTo,
                             onMenuClick = { coroutineScope.launch { drawerState.open() } }
                         )
@@ -443,8 +476,84 @@ fun FocusLauncherApp(viewModel: FocusLauncherViewModel = viewModel()) {
     }
 }
 
+private data class WalkthroughStep(
+    val visualRes: Int,
+    val titleRes: Int,
+    val bodyRes: Int,
+    val bulletRes: List<Int>
+)
+
 @Composable
 private fun OnboardingScreen(onGetStarted: () -> Unit, onMenuClick: () -> Unit) {
+    var showSplash by remember { mutableStateOf(true) }
+    var stepIndex by remember { mutableIntStateOf(0) }
+    val steps = remember {
+        listOf(
+            WalkthroughStep(
+                visualRes = R.drawable.onboarding_visual_home,
+                titleRes = R.string.onboarding_home_title,
+                bodyRes = R.string.onboarding_home_body,
+                bulletRes = listOf(
+                    R.string.onboarding_home_point_1,
+                    R.string.onboarding_home_point_2,
+                    R.string.onboarding_home_point_3
+                )
+            ),
+            WalkthroughStep(
+                visualRes = R.drawable.onboarding_visual_friction,
+                titleRes = R.string.onboarding_friction_title,
+                bodyRes = R.string.onboarding_friction_body,
+                bulletRes = listOf(
+                    R.string.onboarding_friction_point_1,
+                    R.string.onboarding_friction_point_2,
+                    R.string.onboarding_friction_point_3
+                )
+            ),
+            WalkthroughStep(
+                visualRes = R.drawable.onboarding_visual_home,
+                titleRes = R.string.onboarding_profiles_title,
+                bodyRes = R.string.onboarding_profiles_body,
+                bulletRes = listOf(
+                    R.string.onboarding_profiles_point_1,
+                    R.string.onboarding_profiles_point_2,
+                    R.string.onboarding_profiles_point_3
+                )
+            ),
+            WalkthroughStep(
+                visualRes = R.drawable.onboarding_visual_privacy,
+                titleRes = R.string.onboarding_privacy_title,
+                bodyRes = R.string.onboarding_privacy_body,
+                bulletRes = listOf(
+                    R.string.onboarding_privacy_point_1,
+                    R.string.onboarding_privacy_point_2,
+                    R.string.onboarding_privacy_point_3
+                )
+            )
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        delay(1_350)
+        showSplash = false
+    }
+
+    if (showSplash) {
+        OnboardingSplash(onMenuClick = onMenuClick)
+        return
+    }
+
+    val step = steps[stepIndex]
+    val transition = rememberInfiniteTransition(label = "onboarding-visual")
+    val visualScale by transition.animateFloat(
+        initialValue = 0.985f,
+        targetValue = 1.015f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1_800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "onboarding-visual-scale"
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -454,54 +563,198 @@ private fun OnboardingScreen(onGetStarted: () -> Unit, onMenuClick: () -> Unit) 
             .padding(horizontal = 28.dp, vertical = 24.dp)
     ) {
         TopMark(onMenuClick = onMenuClick)
-        Spacer(Modifier.height(36.dp))
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .border(BorderStroke(1.dp, FocusSecondary)),
-            contentAlignment = Alignment.Center
+        Spacer(Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("F", color = LocalFocusPrimary.current, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+            Text(
+                text = stringResource(R.string.onboarding_step_count, stepIndex + 1, steps.size),
+                color = FocusMuted,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 10.sp
+            )
+            WalkthroughProgress(current = stepIndex, total = steps.size)
         }
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(18.dp))
+        Image(
+            painter = painterResource(step.visualRes),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .graphicsLayer(scaleX = visualScale, scaleY = visualScale)
+                .clip(RoundedCornerShape(8.dp))
+                .border(BorderStroke(1.dp, FocusDivider), RoundedCornerShape(8.dp))
+        )
+        Spacer(Modifier.height(24.dp))
         Text(
-            text = stringResource(R.string.onboarding_title),
+            text = stringResource(step.titleRes),
             color = LocalFocusPrimary.current,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             lineHeight = 26.sp
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
-            text = stringResource(R.string.onboarding_desc_1),
+            text = stringResource(step.bodyRes),
             color = FocusSecondary,
             fontSize = 13.sp,
             lineHeight = 19.sp
         )
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(18.dp))
+        step.bulletRes.forEach { bullet ->
+            WalkthroughBullet(text = stringResource(bullet))
+            Spacer(Modifier.height(10.dp))
+        }
+        Spacer(Modifier.weight(1f))
+        if (stepIndex > 0) {
+            GhostButton(
+                text = stringResource(R.string.onboarding_back),
+                onClick = { stepIndex -= 1 }
+            )
+            Spacer(Modifier.height(12.dp))
+        }
+        FocusButton(
+            text = stringResource(if (stepIndex == steps.lastIndex) R.string.onboarding_finish else R.string.onboarding_next),
+            onClick = {
+                if (stepIndex == steps.lastIndex) {
+                    onGetStarted()
+                } else {
+                    stepIndex += 1
+                }
+            }
+        )
+        if (stepIndex == 0) {
+            Spacer(Modifier.height(12.dp))
+            GhostButton(
+                text = stringResource(R.string.onboarding_skip),
+                onClick = onGetStarted
+            )
+        }
+    }
+}
+
+@Composable
+private fun OnboardingSplash(onMenuClick: () -> Unit) {
+    val transition = rememberInfiniteTransition(label = "onboarding-splash")
+    val ringScale by transition.animateFloat(
+        initialValue = 0.86f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1_000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "onboarding-ring-scale"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LocalFocusBackground.current)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 28.dp, vertical = 24.dp)
+    ) {
+        TopMark(onMenuClick = onMenuClick)
+        Spacer(Modifier.weight(1f))
+        Box(
+            modifier = Modifier
+                .size(150.dp)
+                .align(Alignment.CenterHorizontally),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .scale(ringScale)
+                    .border(BorderStroke(1.dp, FocusDivider), CircleShape)
+            )
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .background(LocalFocusPrimary.current, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "F",
+                    color = Color.Black,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        Spacer(Modifier.height(34.dp))
         Text(
-            text = stringResource(R.string.onboarding_desc_2),
+            text = stringResource(R.string.onboarding_splash_eyebrow),
+            color = FocusMuted,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 10.sp,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = stringResource(R.string.onboarding_splash_title),
+            color = LocalFocusPrimary.current,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            lineHeight = 28.sp,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = stringResource(R.string.onboarding_splash_body),
+            color = FocusSecondary,
+            fontSize = 13.sp,
+            lineHeight = 19.sp,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.weight(1.2f))
+    }
+}
+
+@Composable
+private fun WalkthroughProgress(current: Int, total: Int) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        repeat(total) { index ->
+            Box(
+                modifier = Modifier
+                    .width(if (index == current) 22.dp else 7.dp)
+                    .height(7.dp)
+                    .background(
+                        color = if (index == current) LocalFocusPrimary.current else FocusDivider,
+                        shape = CircleShape
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun WalkthroughBullet(text: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(top = 6.dp)
+                .size(5.dp)
+                .background(LocalFocusPrimary.current, CircleShape)
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = text,
             color = FocusMuted,
             fontSize = 12.sp,
-            lineHeight = 18.sp
-        )
-        Spacer(Modifier.height(36.dp))
-        FocusButton(text = stringResource(R.string.onboarding_btn_get_started), onClick = onGetStarted)
-        Spacer(Modifier.height(18.dp))
-        Text(
-            text = stringResource(R.string.onboarding_already_use),
-            color = FocusMuted,
-            fontFamily = FontFamily.Monospace,
-            fontSize = 10.sp
-        )
-        Spacer(Modifier.weight(1f))
-        Text(
-            text = stringResource(R.string.onboarding_footer_quote),
-            color = FocusMuted,
-            fontFamily = FontFamily.Monospace,
-            fontSize = 8.sp,
-            lineHeight = 14.sp,
-            modifier = Modifier.fillMaxWidth()
+            lineHeight = 18.sp,
+            modifier = Modifier.weight(1f)
         )
     }
 }
@@ -512,6 +765,7 @@ private fun HomeScreen(
     onSearchChange: (String) -> Unit,
     onOpenApp: (InstalledApp) -> Unit,
     onOpenAppInfo: (InstalledApp) -> Unit,
+    onOpenWorkspace: (Workspace) -> Unit,
     onNavigate: (LauncherScreen) -> Unit,
     onMenuClick: () -> Unit
 ) {
@@ -552,14 +806,19 @@ private fun HomeScreen(
                 fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.height(28.dp))
-            Eyebrow(stringResource(R.string.home_favorites_header))
+            Eyebrow(stringResource(R.string.home_workspaces_header))
             Spacer(Modifier.height(8.dp))
             val homeList = if (uiState.searchQuery.isBlank()) uiState.favoriteApps else uiState.visibleApps
             if (isZeroAppsActive) {
                 MutedEmptyText(stringResource(R.string.zero_apps_active))
+            } else if (uiState.searchQuery.isBlank()) {
+                WorkspaceTileGrid(
+                    workspaces = uiState.settings.workspaces,
+                    onOpenWorkspace = onOpenWorkspace
+                )
             } else if (homeList.isEmpty()) {
                 MutedEmptyText(
-                    if (uiState.searchQuery.isBlank()) stringResource(R.string.home_no_favorites) else stringResource(R.string.home_no_apps_found)
+                    stringResource(R.string.home_no_apps_found)
                 )
             } else {
                 homeList.take(7).forEach { app ->
@@ -683,6 +942,11 @@ private fun SettingsScreen(
                 SettingRow("Setup Checklist", onClick = { onNavigate(LauncherScreen.Setup) })
                 Spacer(Modifier.height(28.dp))
                 SettingsSection(stringResource(R.string.settings_section_home_screen))
+                SettingRow(
+                    label = stringResource(R.string.settings_workspaces),
+                    value = stringResource(R.string.settings_focus_mode_apps_count, uiState.settings.workspaces.sumOf { it.appIds.size }),
+                    onClick = { onNavigate(LauncherScreen.Workspaces) }
+                )
                 SettingRow(stringResource(R.string.settings_fav_apps), onClick = { onNavigate(LauncherScreen.Favorites) })
                 SettingRow(stringResource(R.string.settings_hidden_apps), onClick = { onNavigate(LauncherScreen.Hidden) })
                 SettingRow(
@@ -818,6 +1082,174 @@ private fun AppSelectorScreen(
                         label = appDisplayLabel(app, uiState.settings),
                         selected = app.id in selectedIds,
                         muted = app.id in uiState.settings.hiddenAppIds && !includeHidden,
+                        onClick = { onToggleApp(app) }
+                    )
+                }
+                if (apps.isEmpty()) {
+                    item { MutedEmptyText(stringResource(R.string.home_no_apps_found)) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkspacesScreen(
+    uiState: LauncherUiState,
+    onOpenWorkspaceApps: (Workspace) -> Unit,
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
+) {
+    FocusShell(selected = LauncherScreen.Settings, selectedScreen = LauncherScreen.Workspaces, showBack = true, onNavigate = onNavigate, onMenuClick = onMenuClick) {
+        LazyColumn(Modifier.fillMaxSize()) {
+            item {
+                Text(
+                    text = stringResource(R.string.workspaces_title),
+                    color = LocalFocusPrimary.current,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.workspaces_desc),
+                    color = FocusMuted,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp
+                )
+                Spacer(Modifier.height(24.dp))
+                SettingsSection(stringResource(R.string.workspaces_section_tiles))
+            }
+
+            items(uiState.settings.workspaces, key = { it.id }) { workspace ->
+                SettingRow(
+                    label = workspace.name,
+                    value = stringResource(R.string.settings_focus_mode_apps_count, workspace.appIds.size),
+                    onClick = { onOpenWorkspaceApps(workspace) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkspaceDetailScreen(
+    uiState: LauncherUiState,
+    onSearchChange: (String) -> Unit,
+    onOpenApp: (InstalledApp) -> Unit,
+    onOpenAppInfo: (InstalledApp) -> Unit,
+    onEditWorkspace: (Workspace) -> Unit,
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
+) {
+    val workspace = uiState.selectedWorkspace
+    if (workspace == null) {
+        FocusShell(
+            selected = LauncherScreen.Home,
+            selectedScreen = LauncherScreen.WorkspaceDetail,
+            showBack = true,
+            backTarget = LauncherScreen.Home,
+            onNavigate = onNavigate,
+            onMenuClick = onMenuClick
+        ) {
+            MutedEmptyText(stringResource(R.string.workspace_missing))
+        }
+        return
+    }
+
+    val workspaceApps = workspaceApps(uiState, workspace)
+    val shownApps = if (uiState.searchQuery.isBlank()) {
+        workspaceApps
+    } else {
+        workspaceApps.filter { appDisplayLabel(it, uiState.settings).contains(uiState.searchQuery.trim(), ignoreCase = true) }
+    }
+
+    FocusShell(
+        selected = LauncherScreen.Home,
+        selectedScreen = LauncherScreen.WorkspaceDetail,
+        showBack = true,
+        backTarget = LauncherScreen.Home,
+        onNavigate = onNavigate,
+        onMenuClick = onMenuClick
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            WorkspaceTile(
+                workspace = workspace,
+                modifier = Modifier
+                    .size(82.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = workspace.name,
+                color = LocalFocusPrimary.current,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(24.dp))
+            SearchInput(
+                value = uiState.searchQuery,
+                placeholder = stringResource(R.string.workspace_search_placeholder),
+                onValueChange = onSearchChange
+            )
+            Spacer(Modifier.height(18.dp))
+            if (shownApps.isEmpty()) {
+                MutedEmptyText(
+                    if (workspace.appIds.isEmpty()) stringResource(R.string.workspace_no_apps) else stringResource(R.string.home_no_apps_found)
+                )
+                Spacer(Modifier.height(12.dp))
+                GhostButton(text = stringResource(R.string.workspace_edit_apps), onClick = { onEditWorkspace(workspace) })
+            } else {
+                LazyColumn(Modifier.fillMaxSize()) {
+                    items(shownApps, key = { it.id }) { app ->
+                        AppRow(
+                            label = appDisplayLabel(app, uiState.settings),
+                            onClick = { onOpenApp(app) },
+                            onLongClick = { onOpenAppInfo(app) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkspaceAppSelectorScreen(
+    uiState: LauncherUiState,
+    onSearchChange: (String) -> Unit,
+    onToggleApp: (InstalledApp) -> Unit,
+    onNavigate: (LauncherScreen) -> Unit,
+    onMenuClick: () -> Unit
+) {
+    val workspace = uiState.selectedWorkspace
+    val title = workspace?.name ?: stringResource(R.string.workspaces_title)
+    FocusShell(
+        selected = LauncherScreen.Settings,
+        selectedScreen = LauncherScreen.WorkspaceApps,
+        showBack = true,
+        backTarget = LauncherScreen.Workspaces,
+        onNavigate = onNavigate,
+        onMenuClick = onMenuClick
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            Text(title, color = LocalFocusPrimary.current, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text(stringResource(R.string.workspace_apps_desc), color = FocusMuted, fontSize = 12.sp, lineHeight = 17.sp)
+            Spacer(Modifier.height(28.dp))
+            SearchInput(
+                value = uiState.searchQuery,
+                placeholder = stringResource(R.string.selector_search_placeholder),
+                onValueChange = onSearchChange
+            )
+            Spacer(Modifier.height(18.dp))
+            val apps = selectorApps(uiState, includeHidden = true, includeOriginalLabel = true)
+            LazyColumn(Modifier.fillMaxSize()) {
+                items(apps, key = { it.id }) { app ->
+                    CheckRow(
+                        label = appDisplayLabel(app, uiState.settings),
+                        selected = workspace != null && app.id in workspace.appIds,
                         onClick = { onToggleApp(app) }
                     )
                 }
@@ -1488,6 +1920,7 @@ private fun FocusShell(
     selected: LauncherScreen,
     selectedScreen: LauncherScreen,
     showBack: Boolean = false,
+    backTarget: LauncherScreen = LauncherScreen.Settings,
     onNavigate: (LauncherScreen) -> Unit,
     onMenuClick: () -> Unit,
     content: @Composable () -> Unit
@@ -1502,7 +1935,7 @@ private fun FocusShell(
         Header(
             selectedScreen = selectedScreen,
             showBack = showBack,
-            onBack = { onNavigate(LauncherScreen.Settings) },
+            onBack = { onNavigate(backTarget) },
             onMenuClick = onMenuClick
         )
         Box(
@@ -1609,6 +2042,72 @@ private fun Header(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun WorkspaceTileGrid(
+    workspaces: List<Workspace>,
+    onOpenWorkspace: (Workspace) -> Unit
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(196.dp),
+        horizontalArrangement = Arrangement.spacedBy(18.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        gridItems(workspaces, key = { it.id }) { workspace ->
+            WorkspaceTileButton(
+                workspace = workspace,
+                onClick = { onOpenWorkspace(workspace) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun WorkspaceTileButton(workspace: Workspace, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        WorkspaceTile(
+            workspace = workspace,
+            modifier = Modifier
+                .size(72.dp)
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = workspace.name,
+            color = LocalFocusPrimary.current,
+            fontSize = 13.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun WorkspaceTile(workspace: Workspace, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .background(Color.Black, RoundedCornerShape(14.dp))
+            .border(BorderStroke(1.dp, FocusDivider), RoundedCornerShape(14.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = workspace.letter,
+            color = Color.White,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -2199,6 +2698,13 @@ private fun selectorApps(
                 appDisplayLabel(it, uiState.settings).contains(query, ignoreCase = true) ||
                 (includeOriginalLabel && it.label.contains(query, ignoreCase = true))
         }
+        .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { appDisplayLabel(it, uiState.settings) })
+}
+
+internal fun workspaceApps(uiState: LauncherUiState, workspace: Workspace): List<InstalledApp> {
+    return uiState.installedApps
+        .filter { it.id in workspace.appIds }
+        .filter { it.id !in uiState.settings.hiddenAppIds }
         .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { appDisplayLabel(it, uiState.settings) })
 }
 

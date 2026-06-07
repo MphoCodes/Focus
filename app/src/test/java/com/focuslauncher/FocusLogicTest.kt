@@ -1,10 +1,15 @@
 package com.focuslauncher
 
 import com.focuslauncher.data.model.LauncherSettings
+import com.focuslauncher.data.model.InstalledApp
 import com.focuslauncher.data.model.ProfileId
+import com.focuslauncher.data.model.Workspace
+import com.focuslauncher.data.repository.WorkspaceSerializer
 import com.focuslauncher.notification.NotificationBatchDeliverer
 import com.focuslauncher.ui.ContextSignal
+import com.focuslauncher.ui.LauncherUiState
 import com.focuslauncher.ui.resolveActiveContextProfile
+import com.focuslauncher.ui.workspaceApps
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDateTime
@@ -44,5 +49,39 @@ class FocusLogicTest {
         // After 6 PM -> 18
         val evening = LocalDateTime.of(2023, 10, 1, 20, 0)
         assertEquals("20231001-18", NotificationBatchDeliverer.currentBatchToken(evening))
+    }
+
+    @Test
+    fun testWorkspaceSerializer_roundTrip() {
+        val workspaces = listOf(
+            Workspace(id = "work", name = "Work", appIds = setOf("app.one/Main", "app.two/Main")),
+            Workspace(id = "money", name = "Money", appIds = setOf("bank.app/Main"))
+        )
+
+        val decoded = WorkspaceSerializer.decode(WorkspaceSerializer.encode(workspaces))
+
+        assertEquals("Work", decoded[0].name)
+        assertEquals(setOf("app.one/Main", "app.two/Main"), decoded[0].appIds)
+        assertEquals("Money", decoded[1].name)
+        assertEquals(setOf("bank.app/Main"), decoded[1].appIds)
+    }
+
+    @Test
+    fun testWorkspaceApps_hidesHiddenAppsAndSortsByDisplayLabel() {
+        val camera = InstalledApp(id = "camera/Main", label = "Camera", packageName = "camera", className = "Main")
+        val bank = InstalledApp(id = "bank/Main", label = "Bank", packageName = "bank", className = "Main")
+        val mail = InstalledApp(id = "mail/Main", label = "Mail", packageName = "mail", className = "Main")
+        val settings = LauncherSettings(
+            hiddenAppIds = setOf(camera.id),
+            workspaces = listOf(Workspace(id = "work", name = "Work", appIds = setOf(camera.id, bank.id, mail.id)))
+        )
+        val state = LauncherUiState(
+            installedApps = listOf(mail, camera, bank),
+            settings = settings
+        )
+
+        val result = workspaceApps(state, settings.workspaces.first())
+
+        assertEquals(listOf(bank, mail), result)
     }
 }

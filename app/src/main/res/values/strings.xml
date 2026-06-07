@@ -9,11 +9,40 @@
     <string name="onboarding_btn_get_started">GET STARTED</string>
     <string name="onboarding_already_use">Already use Focus Launcher →</string>
     <string name="onboarding_footer_quote">DESIGN IS AS MUCH ABOUT WHAT YOU LEAVE OUT AS WHAT YOU PUT IN. - DIGITAL STOICISM</string>
+    <string name="onboarding_splash_eyebrow">FOCUS LAUNCHER</string>
+    <string name="onboarding_splash_title">Make your phone quiet.</string>
+    <string name="onboarding_splash_body">A calmer home screen for opening apps with intent.</string>
+    <string name="onboarding_step_count">%1$d / %2$d</string>
+    <string name="onboarding_next">NEXT</string>
+    <string name="onboarding_back">BACK</string>
+    <string name="onboarding_finish">START FOCUS</string>
+    <string name="onboarding_skip">SKIP SETUP</string>
+    <string name="onboarding_home_title">Start with less.</string>
+    <string name="onboarding_home_body">Keep only the apps that deserve space. Search when you need something, then return to quiet.</string>
+    <string name="onboarding_home_point_1">Favourites are your small daily app list.</string>
+    <string name="onboarding_home_point_2">Search opens the full app drawer without filling the home screen.</string>
+    <string name="onboarding_home_point_3">Workspaces group apps for a job instead of a habit.</string>
+    <string name="onboarding_friction_title">Add a pause before autopilot.</string>
+    <string name="onboarding_friction_body">Focus mode lets selected apps ask for intent before opening, with a short pause that interrupts reflex use.</string>
+    <string name="onboarding_friction_point_1">Intent prompts ask why you are opening an app.</string>
+    <string name="onboarding_friction_point_2">App disguises rename attention traps with dull labels.</string>
+    <string name="onboarding_friction_point_3">Daily quotas help you stop after enough use.</string>
+    <string name="onboarding_profiles_title">Match the phone to the context.</string>
+    <string name="onboarding_profiles_body">Profiles, notification batching, and setup checks help Focus behave differently at work, home, or weekends.</string>
+    <string name="onboarding_profiles_point_1">Context profiles can switch available apps.</string>
+    <string name="onboarding_profiles_point_2">Notification batching holds non-essential interruptions.</string>
+    <string name="onboarding_profiles_point_3">The setup checklist guides launcher and permission access.</string>
+    <string name="onboarding_privacy_title">Keep focus data local.</string>
+    <string name="onboarding_privacy_body">Settings, launch counts, deflections, intent logs, profiles, and notification batches stay on this device.</string>
+    <string name="onboarding_privacy_point_1">No ads, analytics, cloud sync, or tracking SDKs.</string>
+    <string name="onboarding_privacy_point_2">Privacy &amp; data explains each sensitive permission.</string>
+    <string name="onboarding_privacy_point_3">You can clear local data from the Data Management screen.</string>
 
     <!-- Home Screen -->
     <string name="home_intent_title">Make your phone quiet.</string>
     <string name="home_intent_header">INTENT</string>
     <string name="home_favorites_header">Favorites</string>
+    <string name="home_workspaces_header">Workspaces</string>
     <string name="home_no_favorites">No favourites selected.</string>
     <string name="home_no_apps_found">No apps found.</string>
     <string name="home_search_placeholder">Search apps…</string>
@@ -34,6 +63,7 @@
     <string name="settings_title">Settings</string>
     <string name="settings_section_home_screen">HOME SCREEN</string>
     <string name="settings_fav_apps">Favourite apps</string>
+    <string name="settings_workspaces">Workspaces</string>
     <string name="settings_hidden_apps">Hidden apps</string>
     <string name="settings_app_disguises">App disguises</string>
     <string name="settings_app_order">App order</string>
@@ -74,6 +104,16 @@
     <string name="disguises_title">App disguises</string>
     <string name="disguises_desc">Rename attention traps with dull, deliberate labels.</string>
     <string name="disguises_placeholder">Original name</string>
+
+    <!-- Workspaces -->
+    <string name="workspaces_title">Workspaces</string>
+    <string name="workspaces_desc">Group intentional apps behind quiet black tiles.</string>
+    <string name="workspaces_section_tiles">TILES</string>
+    <string name="workspace_apps_desc">Choose the apps inside this workspace.</string>
+    <string name="workspace_search_placeholder">Search workspace</string>
+    <string name="workspace_no_apps">No apps in this workspace.</string>
+    <string name="workspace_edit_apps">EDIT APPS</string>
+    <string name="workspace_missing">Workspace not found.</string>
 
     <!-- App Quotas -->
     <string name="quotas_title">App time quotas</string>
