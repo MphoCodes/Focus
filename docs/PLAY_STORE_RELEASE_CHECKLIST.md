@@ -17,6 +17,7 @@ Use this checklist before submitting Focus Launcher to Google Play.
 ```
 
 - Upload `app/build/outputs/bundle/release/app-release.aab` to Play Console.
+- Current upload target: version `1.2.0` with `versionCode` `4`.
 
 ## GitHub Release Secrets
 
@@ -38,6 +39,7 @@ base64 -i secrets/focus-upload-keystore.jks | pbcopy
 - App name: Focus Launcher
 - Short description: Minimalist Android launcher for reducing distraction.
 - Long description: Use `docs/PLAY_STORE_LISTING.md` and keep claims aligned with shipped app behavior.
+- What's new: Use the `1.2.0` release notes in `docs/PLAY_STORE_LISTING.md`.
 - Screenshots for phone form factor.
 - High-resolution icon.
 - Feature graphic.
@@ -68,9 +70,12 @@ Play reviewers should see a clear core-functionality reason for each sensitive c
 - Wi-Fi/network state: used only for optional Work/Home/Weekend profile switching.
 - App visibility query: required because this is a launcher.
 
+First-run walkthrough note: the walkthrough introduces launcher setup, focus friction, context profiles, notification batching, and privacy expectations. It does not request sensitive permissions during onboarding; sensitive access is requested only when the related optional feature is enabled.
+
 ## Manual QA
 
 - Install release build on a clean physical Android device.
+- Confirm the first-run walkthrough appears for a fresh install and can be completed or skipped.
 - Set Focus Launcher as the default home app.
 - Confirm app drawer search and launch.
 - Enable notification batching and confirm Android 13+ notification permission prompt appears.

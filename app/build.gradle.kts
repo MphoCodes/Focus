@@ -30,15 +30,15 @@ val hasReleaseSigning = listOf(
 ).all { !it.isNullOrBlank() }
 
 android {
-    namespace = "com.focuslauncher"
+    namespace = "com.mphocodes.focuslauncher"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.focuslauncher"
+        applicationId = "com.mphocodes.focuslauncher"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.1.1"
+        versionCode = 4
+        versionName = "1.2.0"
     }
 
     buildFeatures {

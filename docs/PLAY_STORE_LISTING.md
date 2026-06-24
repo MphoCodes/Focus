@@ -20,6 +20,8 @@ Focus Launcher includes soft friction tools for apps you tend to open on autopil
 
 Notification batching helps hold non-essential notifications and release them as simple summaries, while essential apps can bypass the filter.
 
+The first-run walkthrough introduces the core setup choices, explains sensitive permissions in context, and lets users start with the launcher before enabling optional focus tools.
+
 Privacy is central to the design. Focus Launcher stores settings and focus activity locally on your device. It does not include ads, analytics, cloud sync, or third-party tracking SDKs.
 
 Key features:
@@ -31,6 +33,7 @@ Key features:
 - Daily app quotas for selected apps.
 - Work, home, and weekend context profiles.
 - Optional notification batching with essential app bypass.
+- First-run walkthrough for setup, focus tools, and privacy expectations.
 - Local-only settings and privacy-first design.
 - Black theme, grayscale mode, text size, and simple accent options.
 
@@ -80,4 +83,14 @@ Data handling:
 
 Focus Launcher needs launcher visibility to display installed launchable apps and to operate as a home screen replacement.
 
+The first-run walkthrough explains the launcher, focus friction, context profiles, notification batching, and local-only privacy model before users reach the main app. It does not request sensitive permissions during the walkthrough.
+
 Usage access is requested only when the user enables daily app quotas. Notification listener access is requested only when the user enables notification batching. Wi-Fi/network state is used only when the user enables context profiles with SSID-based switching.
+
+## Release Notes
+
+### 1.2.0
+
+- Added a first-run walkthrough that introduces the launcher, friction tools, profiles, notification batching, and local privacy.
+- Updated onboarding visuals for home/search, focus friction, and privacy.
+- No change to data collection, sharing, ads, analytics, or cloud sync behavior.
