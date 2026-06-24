@@ -9,17 +9,17 @@
       content="Focus Launcher is a minimalist Android launcher for reducing distraction with a calm home screen, intentional app access, local settings, and privacy-first focus tools."
     >
     <link rel="canonical" href="https://mphocodes.github.io/Focus/">
+    <link rel="icon" href="./branding/generated-assets/logo-concept-01-focus-ring-grid-512.png">
     <style>
       :root {
         color-scheme: light;
-        --bg: #f4f2ed;
-        --ink: #10100f;
-        --muted: #5f5c55;
-        --soft: #e5e1d7;
-        --line: #cec7ba;
-        --panel: #fbfaf7;
-        --black: #050505;
-        --white: #ffffff;
+        --paper: #f7f7f2;
+        --ink: #070707;
+        --muted: #66645e;
+        --rule: #d7d5cc;
+        --soft: #e9e8e0;
+        --signal: #d8ff42;
+        --max: 1280px;
       }
 
       * {
@@ -32,10 +32,14 @@
 
       body {
         margin: 0;
-        background: var(--bg);
+        background:
+          linear-gradient(90deg, rgba(7, 7, 7, 0.055) 1px, transparent 1px) 0 0 / 72px 72px,
+          linear-gradient(rgba(7, 7, 7, 0.045) 1px, transparent 1px) 0 0 / 72px 72px,
+          var(--paper);
         color: var(--ink);
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        line-height: 1.5;
+        line-height: 1.45;
+        overflow-x: hidden;
       }
 
       a {
@@ -47,308 +51,537 @@
         max-width: 100%;
       }
 
-      .site-header {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        background: rgba(244, 242, 237, 0.9);
-        border-bottom: 1px solid rgba(16, 16, 15, 0.12);
-        backdrop-filter: blur(16px);
+      .skip-link {
+        background: var(--signal);
+        color: var(--ink);
+        font-weight: 800;
+        left: 16px;
+        padding: 10px 14px;
+        position: absolute;
+        top: -60px;
+        z-index: 50;
       }
 
-      .nav {
+      .skip-link:focus {
+        top: 16px;
+      }
+
+      .chrome {
         align-items: center;
         display: flex;
-        gap: 18px;
         justify-content: space-between;
-        margin: 0 auto;
-        max-width: 1180px;
-        padding: 16px 24px;
+        left: 0;
+        padding: 18px 22px;
+        pointer-events: none;
+        position: fixed;
+        right: 0;
+        top: 0;
+        z-index: 20;
       }
 
-      .brand {
+      .mark,
+      .index-panel {
+        pointer-events: auto;
+      }
+
+      .mark {
         align-items: center;
+        background: rgba(247, 247, 242, 0.82);
+        border: 1px solid rgba(7, 7, 7, 0.12);
+        border-radius: 999px;
         display: inline-flex;
-        font-size: 0.78rem;
-        font-weight: 700;
         gap: 10px;
-        letter-spacing: 0.26em;
+        padding: 8px 14px 8px 8px;
         text-decoration: none;
+        backdrop-filter: blur(18px);
+      }
+
+      .mark img {
+        border-radius: 50%;
+        height: 31px;
+        width: 31px;
+      }
+
+      .mark span {
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.28em;
         text-transform: uppercase;
       }
 
-      .brand img {
-        border-radius: 8px;
-        height: 30px;
-        width: 30px;
-      }
-
-      .nav-links {
+      .index-panel {
         align-items: center;
+        background: rgba(7, 7, 7, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        color: #f7f7f2;
         display: flex;
-        gap: 22px;
-        font-size: 0.9rem;
+        gap: 4px;
+        padding: 6px;
+        backdrop-filter: blur(18px);
       }
 
-      .nav-links a {
-        color: var(--muted);
+      .index-panel span {
+        color: rgba(247, 247, 242, 0.5);
+        font-size: 0.7rem;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        padding: 0 10px;
+        text-transform: uppercase;
+      }
+
+      .index-panel a {
+        border-radius: 999px;
+        color: rgba(247, 247, 242, 0.72);
+        font-size: 0.8rem;
+        font-weight: 800;
+        padding: 9px 12px;
         text-decoration: none;
       }
 
-      .nav-links a:hover {
+      .index-panel a:hover,
+      .index-panel a:focus {
+        background: var(--signal);
         color: var(--ink);
+        outline: none;
       }
 
       .hero {
-        min-height: 760px;
+        background: var(--ink);
+        color: #f7f7f2;
+        min-height: 100vh;
+        overflow: hidden;
+        padding: 118px 22px 38px;
         position: relative;
       }
 
-      .hero-media {
-        inset: 0;
-        position: absolute;
-      }
-
-      .hero-media img {
-        height: 100%;
-        object-fit: cover;
-        object-position: center;
-        width: 100%;
-      }
-
-      .hero-media::after {
+      .hero::before {
         background:
-          linear-gradient(90deg, rgba(3, 3, 3, 0.84) 0%, rgba(3, 3, 3, 0.58) 42%, rgba(3, 3, 3, 0.1) 100%),
-          linear-gradient(0deg, rgba(3, 3, 3, 0.44), rgba(3, 3, 3, 0.08));
+          linear-gradient(90deg, rgba(247, 247, 242, 0.055) 1px, transparent 1px) 0 0 / 72px 72px,
+          linear-gradient(rgba(247, 247, 242, 0.045) 1px, transparent 1px) 0 0 / 72px 72px;
         content: "";
         inset: 0;
+        left: 0;
         position: absolute;
+        right: 0;
+        top: 0;
+        z-index: -1;
       }
 
-      .hero-content {
-        color: var(--white);
+      .hero-grid {
+        display: grid;
+        gap: 34px;
+        grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr);
         margin: 0 auto;
-        max-width: 1180px;
-        min-height: 760px;
-        padding: 140px 24px 96px;
-        position: relative;
+        max-width: var(--max);
+      }
+
+      .hero-title {
+        margin-top: 66px;
       }
 
       .eyebrow {
-        color: rgba(255, 255, 255, 0.78);
-        font-size: 0.78rem;
-        font-weight: 700;
+        align-items: center;
+        display: flex;
+        gap: 10px;
+        margin: 0 0 24px;
+      }
+
+      .eyebrow::before {
+        background: var(--signal);
+        border-radius: 50%;
+        content: "";
+        height: 12px;
+        width: 12px;
+      }
+
+      .eyebrow span {
+        color: #f7f7f2;
+        font-size: 0.76rem;
+        font-weight: 900;
         letter-spacing: 0.24em;
-        margin: 0 0 22px;
         text-transform: uppercase;
       }
 
       h1,
       h2,
-      h3 {
-        letter-spacing: 0;
-        line-height: 1;
+      h3,
+      p {
+        margin-top: 0;
       }
 
       h1 {
-        font-size: clamp(3.2rem, 9vw, 7.7rem);
-        margin: 0;
-        max-width: 920px;
+        color: #f7f7f2;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(4rem, 12vw, 9.8rem);
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 0.78;
+        margin-bottom: 34px;
+        max-width: 910px;
       }
 
       .hero-copy {
-        color: rgba(255, 255, 255, 0.78);
-        font-size: clamp(1.05rem, 2vw, 1.32rem);
-        margin: 28px 0 0;
-        max-width: 580px;
+        color: #f7f7f2;
+        display: grid;
+        gap: 22px;
+        grid-template-columns: minmax(0, 1fr) 220px;
+        max-width: 780px;
       }
 
-      .actions {
+      .hero-copy > * {
+        min-width: 0;
+      }
+
+      .hero-copy p {
+        color: rgba(247, 247, 242, 0.84);
+        font-size: clamp(1.18rem, 2vw, 1.48rem);
+        line-height: 1.35;
+        margin-bottom: 0;
+      }
+
+      .release-note {
+        border-left: 2px solid rgba(247, 247, 242, 0.7);
+        color: rgba(247, 247, 242, 0.62);
+        font-size: 0.88rem;
+        font-weight: 700;
+        overflow-wrap: break-word;
+        padding-left: 16px;
+      }
+
+      .hero-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 12px;
+        gap: 10px;
         margin-top: 34px;
       }
 
       .button {
         align-items: center;
-        border: 1px solid rgba(255, 255, 255, 0.35);
-        border-radius: 999px;
+        border: 1px solid var(--ink);
+        border-radius: 0;
         display: inline-flex;
-        font-size: 0.94rem;
-        font-weight: 700;
+        font-size: 0.92rem;
+        font-weight: 900;
         min-height: 48px;
-        padding: 0 20px;
+        padding: 0 17px;
         text-decoration: none;
+        text-transform: uppercase;
       }
 
       .button.primary {
-        background: var(--white);
-        border-color: var(--white);
-        color: var(--black);
+        background: var(--ink);
+        color: #f7f7f2;
       }
 
-      .button.secondary {
-        color: var(--white);
+      .hero .button {
+        border-color: #f7f7f2;
+        color: #f7f7f2;
+      }
+
+      .hero .button.primary {
+        background: #f7f7f2;
+        color: var(--ink);
+      }
+
+      .button:hover,
+      .button:focus {
+        background: var(--signal);
+        color: var(--ink);
+        outline: none;
+      }
+
+      .device-stage {
+        min-height: 720px;
+        position: relative;
+      }
+
+      .device-card {
+        background: var(--ink);
+        border: 1px solid var(--ink);
+        bottom: 0;
+        overflow: hidden;
+        position: absolute;
+        right: 0;
+        width: min(520px, 100%);
+      }
+
+      .device-card::before {
+        border-bottom: 1px solid rgba(247, 247, 242, 0.24);
+        color: rgba(247, 247, 242, 0.72);
+        content: "LIVE HOME SCREEN / SEARCH FIRST";
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        padding: 14px 16px;
+      }
+
+      .device-card img {
+        aspect-ratio: 864 / 1821;
+        filter: grayscale(1) contrast(1.08);
+        height: min(650px, 72vh);
+        object-fit: cover;
+        object-position: top center;
+        width: 100%;
+      }
+
+      .noise-meter {
+        background: var(--signal);
+        border: 1px solid var(--ink);
+        bottom: 74px;
+        color: var(--ink);
+        left: -28px;
+        padding: 18px;
+        position: absolute;
+        width: min(290px, 78vw);
+      }
+
+      .noise-meter strong {
+        display: block;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 3.2rem;
+        font-weight: 500;
+        line-height: 0.9;
+      }
+
+      .noise-meter span {
+        display: block;
+        font-size: 0.76rem;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        margin-top: 10px;
+        text-transform: uppercase;
+      }
+
+      .marquee {
+        background: var(--ink);
+        color: #f7f7f2;
+        overflow: hidden;
+        padding: 18px 0;
+        white-space: nowrap;
+      }
+
+      .marquee span {
+        display: inline-block;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(2.4rem, 6vw, 5.5rem);
+        line-height: 0.9;
+        padding-right: 38px;
       }
 
       .section {
         margin: 0 auto;
-        max-width: 1180px;
-        padding: 92px 24px;
+        max-width: var(--max);
+        padding: 112px 22px;
       }
 
-      .section.split {
-        align-items: center;
-        display: grid;
-        gap: 54px;
-        grid-template-columns: minmax(0, 0.92fr) minmax(320px, 1.08fr);
-      }
-
-      .kicker {
+      .section-label {
+        border-top: 1px solid var(--ink);
         color: var(--muted);
+        display: grid;
         font-size: 0.78rem;
-        font-weight: 800;
-        letter-spacing: 0.22em;
-        margin: 0 0 18px;
+        font-weight: 900;
+        gap: 16px;
+        grid-template-columns: 80px minmax(0, 1fr);
+        letter-spacing: 0.2em;
+        margin-bottom: 34px;
+        padding-top: 14px;
         text-transform: uppercase;
       }
 
       h2 {
-        font-size: clamp(2.3rem, 5vw, 4.8rem);
-        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(3rem, 8vw, 8.8rem);
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 0.86;
+        margin-bottom: 30px;
+        max-width: 1030px;
       }
 
       .lead {
         color: var(--muted);
-        font-size: 1.12rem;
-        margin: 24px 0 0;
-        max-width: 650px;
+        font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+        max-width: 680px;
       }
 
-      .feature-grid {
+      .argument {
         display: grid;
         gap: 1px;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        margin-top: 46px;
-        overflow: hidden;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 60px;
       }
 
-      .feature {
-        background: var(--panel);
-        min-height: 210px;
-        padding: 26px;
+      .argument-item {
+        background: rgba(247, 247, 242, 0.82);
+        border-top: 1px solid var(--ink);
+        min-height: 310px;
+        padding: 18px 18px 22px;
       }
 
-      .feature span {
-        color: var(--muted);
+      .argument-item b {
         display: block;
-        font-size: 0.78rem;
-        font-weight: 800;
+        font-size: 0.76rem;
         letter-spacing: 0.18em;
-        margin-bottom: 50px;
+        margin-bottom: 80px;
         text-transform: uppercase;
       }
 
-      .feature h3 {
-        font-size: 1.28rem;
-        margin: 0 0 12px;
+      .argument-item h3 {
+        font-size: clamp(1.5rem, 3vw, 2.4rem);
+        letter-spacing: 0;
+        line-height: 1;
+        margin-bottom: 18px;
       }
 
-      .feature p {
+      .argument-item p {
         color: var(--muted);
-        margin: 0;
+        margin-bottom: 0;
       }
 
-      .product-shot {
-        background: var(--black);
-        overflow: hidden;
+      .artifact {
+        background: var(--ink);
+        color: #f7f7f2;
       }
 
-      .product-shot img {
-        aspect-ratio: 1024 / 500;
-        object-fit: cover;
-        width: 100%;
-      }
-
-      .principles {
-        background: var(--black);
-        color: var(--white);
-      }
-
-      .principles .section {
-        display: grid;
-        gap: 52px;
-        grid-template-columns: minmax(0, 0.85fr) minmax(320px, 1.15fr);
-      }
-
-      .principles .kicker,
-      .principles .lead {
-        color: rgba(255, 255, 255, 0.62);
-      }
-
-      .principle-list {
-        border-top: 1px solid rgba(255, 255, 255, 0.18);
-      }
-
-      .principle {
+      .artifact-grid {
+        align-items: stretch;
         display: grid;
         gap: 22px;
-        grid-template-columns: 120px minmax(0, 1fr);
-        padding: 26px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+        grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
       }
 
-      .principle strong {
-        font-size: 0.78rem;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
+      .artifact .section-label {
+        border-color: rgba(247, 247, 242, 0.3);
+        color: rgba(247, 247, 242, 0.55);
       }
 
-      .principle p {
-        color: rgba(255, 255, 255, 0.72);
-        margin: 0;
+      .artifact h2,
+      .artifact .lead {
+        color: #f7f7f2;
       }
 
-      .media-stack {
-        display: grid;
-        gap: 16px;
-        grid-template-columns: 0.8fr 1fr;
+      .artifact .lead {
+        color: rgba(247, 247, 242, 0.68);
       }
 
-      .media-stack img {
-        background: var(--soft);
+      .interface-shot {
+        align-self: start;
+        border: 1px solid rgba(247, 247, 242, 0.2);
+        overflow: hidden;
+      }
+
+      .interface-shot img {
+        aspect-ratio: 1024 / 500;
+        filter: grayscale(1) contrast(1.08);
         height: 100%;
         object-fit: cover;
         width: 100%;
       }
 
-      .media-stack img:first-child {
-        aspect-ratio: 864 / 1821;
+      .tool-list {
+        border-top: 1px solid rgba(247, 247, 242, 0.24);
+        margin-top: 46px;
       }
 
-      .media-stack img:last-child {
-        aspect-ratio: 1254 / 1254;
-        align-self: center;
-      }
-
-      .privacy-band {
-        background: var(--panel);
-        border-bottom: 1px solid var(--line);
-        border-top: 1px solid var(--line);
-      }
-
-      .privacy-band .section {
-        align-items: end;
+      .tool {
+        border-bottom: 1px solid rgba(247, 247, 242, 0.24);
         display: grid;
-        gap: 32px;
-        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 24px;
+        grid-template-columns: 150px minmax(0, 1fr);
+        padding: 24px 0;
       }
 
-      .privacy-band .button {
-        border-color: var(--ink);
+      .tool span {
+        color: var(--signal);
+        font-size: 0.78rem;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .tool p {
+        color: rgba(247, 247, 242, 0.72);
+        font-size: 1.1rem;
+        margin-bottom: 0;
+      }
+
+      .gallery {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: minmax(0, 0.76fr) minmax(0, 1.24fr);
+      }
+
+      .gallery img {
+        border: 1px solid var(--ink);
+        filter: grayscale(1) contrast(1.05);
+        height: 100%;
+        object-fit: cover;
+        width: 100%;
+      }
+
+      .gallery img:first-child {
+        aspect-ratio: 1254 / 1254;
+      }
+
+      .gallery img:last-child {
+        aspect-ratio: 1672 / 941;
+      }
+
+      .privacy-proof {
+        display: grid;
+        gap: 34px;
+        grid-template-columns: minmax(0, 0.94fr) minmax(320px, 1.06fr);
+      }
+
+      .privacy-list {
+        border-top: 1px solid var(--ink);
+      }
+
+      .privacy-list p {
+        border-bottom: 1px solid var(--rule);
+        display: flex;
+        gap: 20px;
+        justify-content: space-between;
+        margin: 0;
+        padding: 18px 0;
+      }
+
+      .privacy-list strong {
+        font-size: 0.78rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .privacy-list span {
+        color: var(--muted);
+        max-width: 360px;
+      }
+
+      .closing {
+        background: var(--signal);
+        border-top: 1px solid var(--ink);
         color: var(--ink);
-        white-space: nowrap;
+      }
+
+      .closing .section {
+        display: grid;
+        gap: 34px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        padding-bottom: 78px;
+        padding-top: 78px;
+      }
+
+      .closing h2 {
+        margin-bottom: 0;
+        max-width: 850px;
+      }
+
+      .closing .button {
+        align-self: end;
+        background: var(--ink);
+        color: #f7f7f2;
       }
 
       .site-footer {
@@ -357,228 +590,321 @@
         gap: 24px;
         justify-content: space-between;
         margin: 0 auto;
-        max-width: 1180px;
-        padding: 34px 24px 46px;
+        max-width: var(--max);
+        padding: 28px 22px 44px;
       }
 
       .site-footer a {
+        font-weight: 800;
         text-decoration: none;
       }
 
-      @media (max-width: 860px) {
-        .nav {
-          align-items: flex-start;
-          flex-direction: column;
-        }
-
-        .nav-links {
-          flex-wrap: wrap;
-          gap: 14px;
-        }
-
-        .hero,
-        .hero-content {
-          min-height: 680px;
-        }
-
-        .hero-media::after {
-          background: linear-gradient(90deg, rgba(3, 3, 3, 0.88), rgba(3, 3, 3, 0.46));
-        }
-
-        .section,
-        .hero-content {
-          padding-left: 18px;
-          padding-right: 18px;
-        }
-
-        .section.split,
-        .principles .section,
-        .privacy-band .section {
+      @media (max-width: 1040px) {
+        .hero-grid,
+        .artifact-grid,
+        .privacy-proof {
           grid-template-columns: 1fr;
         }
 
-        .feature-grid {
-          grid-template-columns: 1fr 1fr;
+        .hero-title {
+          margin-top: 42px;
         }
 
-        .media-stack {
+        .device-stage {
+          min-height: 640px;
+        }
+
+        .device-card {
+          left: auto;
+          right: 0;
+        }
+
+        .argument {
           grid-template-columns: 1fr;
         }
 
-        .privacy-band .section {
-          align-items: start;
+        .argument-item {
+          min-height: 220px;
+        }
+
+        .argument-item b {
+          margin-bottom: 44px;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .chrome {
+          align-items: stretch;
+          background: rgba(247, 247, 242, 0.92);
+          border-bottom: 1px solid rgba(7, 7, 7, 0.12);
+          display: grid;
+          gap: 10px;
+          padding: 10px 12px;
+          position: sticky;
+          backdrop-filter: blur(18px);
+        }
+
+        .mark,
+        .index-panel {
+          border-radius: 0;
+        }
+
+        .index-panel {
+          justify-content: flex-start;
+          overflow-x: auto;
+        }
+
+        .index-panel span {
+          display: none;
+        }
+
+        .hero {
+          min-height: auto;
+          padding: 46px 30px 30px 16px;
+        }
+
+        .hero-title {
+          padding-right: 0;
+        }
+
+        .hero::before {
+          height: auto;
+        }
+
+        .hero-copy {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-copy p,
+        .release-note {
+          max-width: calc(100vw - 48px);
+        }
+
+        .device-stage {
+          min-height: 560px;
+        }
+
+        .device-card {
+          position: relative;
+          width: 100%;
+        }
+
+        .device-card img {
+          height: 520px;
+        }
+
+        .noise-meter {
+          bottom: -18px;
+          left: 18px;
+        }
+
+        .section {
+          padding: 82px 16px;
+        }
+
+        .section-label,
+        .tool,
+        .closing .section {
+          grid-template-columns: 1fr;
+        }
+
+        .gallery {
+          grid-template-columns: 1fr;
+        }
+
+        .privacy-list p {
+          display: block;
+        }
+
+        .privacy-list span {
+          display: block;
+          margin-top: 8px;
         }
 
         .site-footer {
           flex-direction: column;
+          padding-left: 16px;
+          padding-right: 16px;
         }
       }
 
-      @media (max-width: 560px) {
-        .hero,
-        .hero-content {
-          min-height: 620px;
+      @media (max-width: 460px) {
+        h1 {
+          font-size: clamp(4rem, 24vw, 6.5rem);
         }
 
-        .hero-content {
-          padding-top: 96px;
+        .button {
+          justify-content: center;
+          width: 100%;
         }
 
-        .feature-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .principle {
-          grid-template-columns: 1fr;
+        .noise-meter {
+          width: calc(100% - 36px);
         }
       }
     </style>
   </head>
   <body>
-    <header class="site-header">
-      <nav class="nav" aria-label="Main navigation">
-        <a class="brand" href="./" aria-label="Focus Launcher home">
-          <img src="./branding/generated-assets/logo-concept-01-focus-ring-grid-512.png" alt="">
-          Focus
-        </a>
-        <div class="nav-links">
-          <a href="#why">Why Focus</a>
-          <a href="#features">Features</a>
-          <a href="#privacy">Privacy</a>
-          <a href="./support/">Support</a>
-          <a href="./privacy-policy/">Privacy Policy</a>
-        </div>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="chrome" aria-label="Site header">
+      <a class="mark" href="./" aria-label="Focus Launcher home">
+        <img src="./branding/generated-assets/logo-concept-01-focus-ring-grid-512.png" alt="">
+        <span>Focus</span>
+      </a>
+      <nav class="index-panel" aria-label="Site index">
+        <span>Index</span>
+        <a href="#why">01 Why</a>
+        <a href="#tools">02 Tools</a>
+        <a href="#privacy">03 Privacy</a>
+        <a href="./support/">Support</a>
       </nav>
     </header>
 
-    <main>
+    <main id="main">
       <section class="hero" aria-label="Focus Launcher introduction">
-        <div class="hero-media" aria-hidden="true">
-          <img src="./branding/generated-assets/ad-lifestyle-living-room-hero.png" alt="">
-        </div>
-        <div class="hero-content">
-          <p class="eyebrow">Minimal Android launcher</p>
-          <h1>Focus Launcher</h1>
-          <p class="hero-copy">
-            A quieter home screen for people who want their phone to feel intentional again.
-            Less noise, fewer visual triggers, and focus tools that stay on your device.
-          </p>
-          <div class="actions">
-            <a class="button primary" href="#features">Explore the launcher</a>
-            <a class="button secondary" href="./privacy-policy/">Read privacy policy</a>
+        <div class="hero-grid">
+          <div class="hero-title">
+            <p class="eyebrow"><span>Minimal Android launcher</span></p>
+            <h1>Quiet by default.</h1>
+            <div class="hero-copy">
+              <p>
+                Focus Launcher turns the home screen into a deliberate starting point:
+                sparse, searchable, monochrome, and built around intent instead of impulse.
+              </p>
+              <aside class="release-note">
+                Local settings. No ads. No analytics. No cloud sync.
+              </aside>
+            </div>
+            <div class="hero-actions">
+              <a class="button primary" href="#tools">See the tools</a>
+              <a class="button" href="./privacy-policy/">Privacy policy</a>
+            </div>
+          </div>
+
+          <div class="device-stage" aria-label="Focus Launcher product view">
+            <figure class="device-card">
+              <img
+                src="./branding/generated-assets/product-promo-portrait-phone.png"
+                alt="Focus Launcher monochrome home screen on an Android phone."
+              >
+            </figure>
+            <div class="noise-meter" aria-label="Distraction reduction statement">
+              <strong>less</strong>
+              <span>surface area for distraction</span>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="section split" id="why">
-        <div>
-          <p class="kicker">What it is</p>
-          <h2>Your phone, with less pull.</h2>
-          <p class="lead">
-            Focus replaces a noisy app grid with a restrained black-and-white launcher built
-            around search, deliberate app opening, and simple focus boundaries.
-          </p>
-        </div>
-        <div class="product-shot">
-          <img
-            src="./branding/generated-assets/product-feature-graphic-1024x500.png"
-            alt="Focus Launcher shown on a minimal Android phone interface."
-          >
-        </div>
-      </section>
+      <div class="marquee" aria-hidden="true">
+        <span>less noise / more intent / fewer shortcuts / calmer defaults / </span>
+        <span>less noise / more intent / fewer shortcuts / calmer defaults / </span>
+      </div>
 
-      <section class="section" id="features">
-        <p class="kicker">What it does</p>
-        <h2>Designed for intentional use.</h2>
+      <section class="section" id="why">
+        <p class="section-label"><span>01</span><span>Why Focus exists</span></p>
+        <h2>Most launchers optimize access. Focus optimizes restraint.</h2>
         <p class="lead">
-          Focus gives you enough structure to slow down automatic app opening without turning
-          your phone into another system to manage.
+          The point is not to make the phone unusable. It is to remove the visual cues that
+          make opening an app feel automatic.
         </p>
 
-        <div class="feature-grid">
-          <article class="feature">
-            <span>01</span>
-            <h3>Minimal home</h3>
-            <p>Keep only the apps that deserve immediate access, with a clean text-first surface.</p>
+        <div class="argument">
+          <article class="argument-item">
+            <b>Home</b>
+            <h3>Fewer things competing for your thumb.</h3>
+            <p>Keep the surface quiet and reserve immediate access for apps that deserve it.</p>
           </article>
-          <article class="feature">
-            <span>02</span>
-            <h3>Fast search</h3>
-            <p>Find apps when you need them instead of scanning a wall of icons by habit.</p>
+          <article class="argument-item">
+            <b>Search</b>
+            <h3>Open apps by intent, not by icon hunting.</h3>
+            <p>Search makes access fast without turning the home screen into a menu of temptations.</p>
           </article>
-          <article class="feature">
-            <span>03</span>
-            <h3>Friction tools</h3>
-            <p>Add intent prompts, app quotas, hidden apps, and dull labels for attention traps.</p>
-          </article>
-          <article class="feature">
-            <span>04</span>
-            <h3>Context profiles</h3>
-            <p>Use different app lists for work, home, weekends, or other modes of your day.</p>
+          <article class="argument-item">
+            <b>Friction</b>
+            <h3>Put a small pause before attention traps.</h3>
+            <p>Prompts, quotas, hidden apps, and dull labels create space between impulse and action.</p>
           </article>
         </div>
       </section>
 
-      <section class="principles" aria-label="Focus principles">
-        <div class="section">
+      <section class="artifact" id="tools">
+        <div class="section artifact-grid">
           <div>
-            <p class="kicker">Why it exists</p>
-            <h2>Less engagement. More intent.</h2>
+            <p class="section-label"><span>02</span><span>Focus tools</span></p>
+            <h2>A launcher with boundaries.</h2>
             <p class="lead">
-              Focus is built from the belief that a launcher should help you decide, not
-              persuade you to keep opening things.
+              Focus stays simple on the surface, but gives you optional tools when a plain
+              home screen is not enough.
             </p>
+
+            <div class="tool-list">
+              <div class="tool">
+                <span>Workspaces</span>
+                <p>Group apps by mode so work, money, creation, and tools do not all fight for the same screen.</p>
+              </div>
+              <div class="tool">
+                <span>Quotas</span>
+                <p>Set daily limits for selected apps and make overuse visible before it becomes the default.</p>
+              </div>
+              <div class="tool">
+                <span>Batching</span>
+                <p>Hold non-essential notifications and let important apps bypass the filter.</p>
+              </div>
+            </div>
           </div>
-          <div class="principle-list">
-            <div class="principle">
-              <strong>Quiet</strong>
-              <p>Monochrome visuals and low-noise screens reduce the number of things asking for attention.</p>
-            </div>
-            <div class="principle">
-              <strong>Deliberate</strong>
-              <p>Search, workspaces, and optional prompts make app opening feel like a choice.</p>
-            </div>
-            <div class="principle">
-              <strong>Local</strong>
-              <p>Settings and focus activity are stored on the device. No ads, analytics, cloud sync, or tracking SDKs.</p>
-            </div>
-          </div>
+
+          <figure class="interface-shot">
+            <img
+              src="./branding/generated-assets/product-feature-graphic-1024x500.png"
+              alt="Focus Launcher feature graphic showing a minimal Android interface."
+            >
+          </figure>
         </div>
       </section>
 
-      <section class="section split">
-        <div class="media-stack" aria-label="Focus Launcher product imagery">
-          <img
-            src="./branding/generated-assets/product-promo-portrait-phone.png"
-            alt="Portrait product mockup of Focus Launcher."
-          >
+      <section class="section" aria-label="Focus product imagery">
+        <p class="section-label"><span>03</span><span>Visual direction</span></p>
+        <h2>Black, white, intentional.</h2>
+        <p class="lead">
+          Focus should feel closer to a quiet instrument than another colorful productivity app.
+          The interface avoids badges, bright icons, feeds, and decorative noise.
+        </p>
+        <div class="gallery">
           <img
             src="./branding/generated-assets/ad-studio-product-phone.png"
-            alt="Studio product image showing Focus Launcher on a phone."
+            alt="Studio image of Focus Launcher on a phone."
           >
-        </div>
-        <div>
-          <p class="kicker">Who it is for</p>
-          <h2>For people who want a calmer default.</h2>
-          <p class="lead">
-            Use Focus if your home screen has become a reflex machine. It is made for people
-            who still need their phone, but want fewer shortcuts into distraction.
-          </p>
+          <img
+            src="./branding/generated-assets/ad-lifestyle-living-room-hero.png"
+            alt="Lifestyle image showing Focus Launcher in a quiet evening setting."
+          >
         </div>
       </section>
 
-      <section class="privacy-band" id="privacy">
-        <div class="section">
-          <div>
-            <p class="kicker">Privacy</p>
-            <h2>Built without tracking.</h2>
-            <p class="lead">
-              Focus does not request internet access and does not include ads, analytics,
-              cloud sync, or third-party tracking SDKs. Optional permissions are used only
-              for the focus features you enable.
-            </p>
+      <section class="section privacy-proof" id="privacy">
+        <div>
+          <p class="section-label"><span>04</span><span>Privacy model</span></p>
+          <h2>No cloud needed for focus.</h2>
+        </div>
+        <div>
+          <p class="lead">
+            Focus stores settings and activity counters locally on the device. Optional Android
+            permissions are tied to the features that use them.
+          </p>
+          <div class="privacy-list">
+            <p><strong>No internet</strong><span>The app does not request internet access.</span></p>
+            <p><strong>No tracking</strong><span>No ads, analytics, cloud sync, or third-party tracking SDKs.</span></p>
+            <p><strong>User control</strong><span>Usage access and notification access can be disabled in Android settings.</span></p>
           </div>
-          <a class="button" href="./privacy-policy/">Privacy Policy</a>
+        </div>
+      </section>
+
+      <section class="closing">
+        <div class="section">
+          <h2>Make the default calmer.</h2>
+          <a class="button" href="./support/">Support and setup</a>
         </div>
       </section>
     </main>
