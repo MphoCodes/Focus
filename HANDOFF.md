@@ -31,3 +31,5 @@ JDK 17 / Android SDK 36:
 - Run device QA before describing this as production/device verified.
 - Release publication and repository visibility are separate operations. Existing release signing configuration is preserved; no release key is stored locally by this work.
 - Canonical project memory scope: `MphoCodes/Focus`. Local memory MCP recall returned no prior scoped results. No project source-ingestion tool was available; no existing graph was modified.
+
+Publication verified: public MIT repository with Android/Kotlin/Compose/open-source topics. Signed v1.2.0 APK and AAB published using existing signing configuration; hosted release run 43834586417 passed all checks and signature verification.
