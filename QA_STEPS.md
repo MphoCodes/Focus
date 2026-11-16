@@ -1,20 +1,36 @@
-# Manual QA Steps
+# Manual QA
 
-## 1. Usage Access
-- Navigate to an app that has a quota.
-- Open the app.
-- Ensure the prompt for Usage Access is shown if permission is not granted.
-- Grant the permission and ensure the app opens correctly.
-- Ensure the quota tracks usage correctly.
+Run on a disposable emulator or test device. Record the Android version, device model and APK commit. A passing JVM suite does not cover these flows.
 
-## 2. Notification Listener Access
-- Enable notification batching in Settings.
-- You should be prompted to allow Notification Listener access.
-- Grant it, then trigger notifications from various apps.
-- Verify that non-essential notifications are batched and shown in the summary.
+## Onboarding and home
 
-## 3. Launcher Default Setup
-- Finish onboarding.
-- You should be prompted to set Focus Launcher as the default home app.
-- Confirm and restart device/press home button to ensure Focus Launcher intercepts the home intent.
+- On a fresh installation, advance through all onboarding steps and open default-home settings.
+- Set Focus as Home, press Home and reboot; check the launcher returns correctly.
+- Switch back to the previous launcher through Android default-app settings.
+- Search the drawer, launch an app, change a favorite, hide/unhide an app, rename it and add it to a workspace.
+- Change text size and check screens, rows and onboarding for clipping.
 
+## Usage access and quotas
+
+- Set a quota on an app and try opening it without Usage Access; verify the permission explanation.
+- Grant access, return to Focus and verify state refreshes.
+- Use the selected app beyond its quota, return and try launching it through Focus; verify the blocked state.
+- Revoke access and verify the explanation returns. Check day rollover on the test device.
+- Remember that links, notifications and other launchers are outside Focus's launch gate.
+
+## Notifications and profiles
+
+- Enable batching and grant listener access plus Android 13+ notification permission.
+- Generate disposable notifications from essential and non-essential apps. Verify bypass versus dismissal and count summaries.
+- Check summary delivery around noon/18:00, including background/power-saving behavior; original content is not replayed.
+- Disable batching and revoke listener access; confirm normal notifications resume.
+- Exercise manual profiles, weekday/weekend schedules and Wi-Fi matching where Android exposes the SSID.
+
+## Automated checks
+
+```sh
+./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
+./gradlew connectedDebugAndroidTest
+```
+
+The second command requires a connected Android device/emulator and executes the real-activity onboarding navigation test. Use a test installation: the test resets onboarding completion.

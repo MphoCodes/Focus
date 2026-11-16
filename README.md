@@ -1,105 +1,82 @@
-# Focus Launcher
+<div align="center">
 
-Focus Launcher is a minimalist, distraction-free home screen replacement for Android. Built with Kotlin and Jetpack Compose, it is designed around the principles of **Digital Stoicism**—helping you ask what must be done rather than consuming what is presented to you.
+# Focus
 
-The user interface is inspired by premium, Swiss-style typography mockups from **Google Stitch**.
+**A quieter home screen for Android.**
 
----
+An open-source launcher built with Kotlin and Jetpack Compose. Put the apps you need within reach, add a pause before distracting ones, and keep your settings on your device.
 
-## Features
+[Download previews](https://github.com/MphoCodes/Focus/releases) · [Architecture](docs/ARCHITECTURE.md) · [Privacy](docs/PRIVACY_POLICY.md) · [Report an issue](https://github.com/MphoCodes/Focus/issues)
 
-* **Intent Focus**: Displays a customizable intent header right on the home screen to keep you focused on your goals.
-* **Favorites Menu**: Allows selecting up to 7 primary applications. The rest of the interface is kept completely blank to reduce visual clutter.
-* **Clean App Drawer**: A borderless, minimalist scrollable listing of all installed launchable applications with live search.
-* **Healthy Friction (Pause Mode)**: Designated apps (like social media or attention-grabbing feeds) trigger an intervention countdown timer (5s, 10s, 20s) and ask you why you are opening them before letting you proceed.
-* **Hide Applications**: Easily hide distracting apps from both the search results and the drawer.
-* **App Disguises**: Rename distracting apps with dull labels to reduce visual triggers while keeping launch behavior intact.
-* **Strict App Time Quotas**: Set daily limits for specific apps and hard-block launches once the quota is exhausted.
-* **Contextual Focus Profiles**: Configure Work, Home, and Weekend app lists with manual switching, time/day rules, and optional Wi-Fi SSID triggers.
-* **Notification Batching**: Intercept non-essential notifications and deliver batched summaries at 12:00 and 18:00 while essential apps bypass the filter.
-* **Window Insets Compatibility**: Native edge-to-edge rendering supporting status bar and gesture navigation padding on modern Android versions.
-* **Full Localization**: Zero hardcoded strings. All copy is managed via Android resource values (`strings.xml`) for easy translations.
+![Android 8+](https://img.shields.io/badge/Android-8%2B-3DDC84?logo=android&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin-Compose-7F52FF?logo=kotlin&logoColor=white)
+![MIT License](https://img.shields.io/badge/License-MIT-blue)
 
----
+</div>
 
-## Architecture & Tech Stack
+![Focus product concept](marketing/images/product-feature-graphic-1024x500.png)
 
-The application conforms to standard Android architecture guidelines:
-* **UI Framework**: Jetpack Compose using Material 3 styling tokens.
-* **Architecture Pattern**: MVVM (Model-View-ViewModel) with unidirectional data flow (UDF).
-* **Concurrency**: Kotlin Coroutines & Flows for reactive state management.
-* **Persistence**: Jetpack DataStore (Preferences DataStore) for launcher settings, app lists, profiles, quotas, aliases, and notification batching state.
-* **Build System**: Kotlin Gradle DSL (`build.gradle.kts`) with toolchain targets.
-* **Java Version**: JDK 17.
-* **Target SDK**: Android 16 (API 36).
+*Product concept artwork; the installed interface may differ.*
 
----
+## Make room for what matters
 
-## Getting Started
+- **Intentional home screen:** an intent header, favorites and app workspaces.
+- **Searchable app drawer:** find launchable apps, hide entries and give apps quieter display names.
+- **Pause before opening:** optional countdowns and intent prompts for selected apps.
+- **Focus profiles:** manual Work, Home and Weekend lists, with time/day and optional Wi-Fi matching.
+- **Daily quota checks:** check Android usage data before opening selected apps through Focus.
+- **Notification batching:** optionally dismiss non-essential notifications and summarize counts around noon and 18:00. Essential apps can bypass batching.
+- **Personal settings:** text sizes, accent colors, dark appearance, scheduled home-screen hiding and local statistics.
 
-### Prerequisites
-* **Android Studio** (Koala or newer recommended)
-* **JDK 17** installed and configured
-* **Android SDK 36** (target) and **SDK 26** (minimum)
+Focus has no internet permission, advertising SDK or account requirement. Settings and counters use local DataStore storage.
 
-### How to Compile Locally
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/MphoCodes/Focus.git
-   cd Focus
-   ```
-2. Build the project using the Gradle wrapper:
-   ```bash
-   ./gradlew assembleDebug
-   ```
-3. Run unit checks and linting:
-   ```bash
-   ./gradlew test
-   ./gradlew lint
-   ```
+## Try it
 
-4. Build the Google Play release bundle:
-   ```bash
-   ./gradlew bundleRelease
-   ```
+Download an `.apk` from [Releases](https://github.com/MphoCodes/Focus/releases), transfer it to an Android 8.0+ device, and allow installation from your download app when Android asks. Open Focus and select it in **Settings → Apps → Default apps → Home app**; names vary by device. Select your previous launcher there to switch back.
 
----
+Packages marked **debug preview** use a debug signing key and are for evaluation. They are not Play Store releases; builds signed with another key may require uninstalling the old copy, which removes local settings. An `.aab` is for store distribution and cannot be installed directly.
 
-## Releasing Strategy
+### Current boundaries
 
-### 1. Semantic Versioning
-This project uses [Semantic Versioning](https://semver.org/):
-* **Major version (X.y.z)**: Big changes (e.g., UI redesigns, complete architectural shifts).
-* **Minor version (x.Y.z)**: New features (e.g., custom prompts, stats pages).
-* **Patch version (x.y.Z)**: Bug fixes, minor visual adjustments, and layout corrections.
+- Quotas gate launches initiated through Focus. They do not prevent opening apps from notifications, links or another launcher, and cannot forcibly stop another app. Android usage totals can be delayed or approximate.
+- Notification batching stores counts, not the original notification content. Dismissed notifications are not replayed. Android scheduling and power restrictions can delay summaries.
+- Wi-Fi SSIDs may be unavailable under Android permission and location restrictions; use manual profiles when automatic matching is unavailable.
+- Some interface copy remains hardcoded. Translation coverage is incomplete.
+- This is a developing launcher. Automated checks do not replace testing home navigation, permission changes and notification behavior on physical devices.
 
-Increment the `versionCode` (integer) and update the `versionName` (string) in `app/build.gradle.kts` before creating a release.
+## Build locally
 
-### 2. Manual App Store Release
-To prepare an Android App Bundle (AAB) for deployment to the Google Play Store:
-1. Generate a upload Keystore (if not already done):
-   ```bash
-   keytool -genkey -v -keystore release-key.keystore -alias focus-key -keyalg RSA -keysize 2048 -validity 10000
-   ```
-2. Configure project variables or environment values in your local `local.properties` or system variables:
-   ```properties
-   FOCUS_RELEASE_STORE_FILE=/absolute/path/to/upload-keystore.jks
-   FOCUS_RELEASE_STORE_PASSWORD=...
-   FOCUS_RELEASE_KEY_ALIAS=focus-key
-   FOCUS_RELEASE_KEY_PASSWORD=...
-   ```
-3. Build the release App Bundle:
-   ```bash
-   ./gradlew bundleRelease
-   ```
-   The generated `.aab` file will be saved under `app/build/outputs/bundle/release/app-release.aab`.
+Use JDK 17 and an Android SDK installation containing platform 36. Set `ANDROID_HOME`, or set `sdk.dir` in an untracked `local.properties` file.
 
-### 3. Automated CI/CD & GitHub Releases
-Our release workflow is fully automated through **GitHub Actions**:
-* **On Pull Request / Push to `main`**: Runs code compilation checks and Gradle verification.
-* **On Pushing a Tag (`v*`)**:
-  * Compiles the production-ready Android App Bundle.
-  * Automatically creates a published **GitHub Release**.
-  * Uploads the generated release AAB as an asset for Google Play distribution.
+```sh
+git clone https://github.com/MphoCodes/Focus.git
+cd Focus
+./gradlew testDebugUnitTest lintDebug assembleDebug
+```
 
-See [docs/PLAY_STORE_RELEASE_CHECKLIST.md](docs/PLAY_STORE_RELEASE_CHECKLIST.md) and [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md) before submitting to Google Play.
+Install `app/build/outputs/apk/debug/app-debug.apk`, or run `./gradlew installDebug` with a connected device. See [manual QA](QA_STEPS.md) for device checks.
+
+The app targets API 36 and supports API 26 onward. The checked-in Gradle wrapper manages the Gradle version.
+
+## Release signing
+
+Release signing is not included in this repository. Configure these environment variables or untracked `local.properties` entries with your own upload key:
+
+```properties
+FOCUS_RELEASE_STORE_FILE=/absolute/path/to/upload-keystore.jks
+FOCUS_RELEASE_STORE_PASSWORD=your-store-password
+FOCUS_RELEASE_KEY_ALIAS=your-key-alias
+FOCUS_RELEASE_KEY_PASSWORD=your-key-password
+```
+
+Then run `./gradlew bundleRelease assembleRelease`. Without all signing values, local release builds are unsigned. Never commit signing keys or credentials.
+
+CI verifies unit tests, lint and debug packaging for pushes and pull requests. Version tags run the signed release workflow using repository secrets; APK signatures and AAB signing are checked before publication. Read the [release checklist](docs/PLAY_STORE_RELEASE_CHECKLIST.md) before a store submission.
+
+## Contributing
+
+Small, focused changes are welcome. Describe the behavior being changed, include regression coverage for logic fixes, and run the checks above. For UI changes, include screenshots and device/API details. Read the [architecture guide](docs/ARCHITECTURE.md) before moving responsibilities between screens, state and repositories.
+
+## License
+
+[MIT](LICENSE) · Copyright © 2026 Mpho Ndlela.

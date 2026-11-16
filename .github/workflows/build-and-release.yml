@@ -9,7 +9,7 @@ on:
     branches: [ "main" ]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -31,15 +31,18 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run Build and Tests
-        run: ./gradlew test assembleDebug --stacktrace
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --stacktrace
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
+          if-no-files-found: error
           name: focus-launcher-debug
           path: app/build/outputs/apk/debug/app-debug.apk
 
   release:
+    permissions:
+      contents: write
     name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
@@ -75,7 +78,21 @@ jobs:
           FOCUS_RELEASE_STORE_PASSWORD: ${{ secrets.FOCUS_RELEASE_STORE_PASSWORD }}
           FOCUS_RELEASE_KEY_ALIAS: ${{ secrets.FOCUS_RELEASE_KEY_ALIAS }}
           FOCUS_RELEASE_KEY_PASSWORD: ${{ secrets.FOCUS_RELEASE_KEY_PASSWORD }}
-        run: ./gradlew bundleRelease assembleRelease
+        run: |
+          for variable in FOCUS_RELEASE_STORE_FILE FOCUS_RELEASE_STORE_PASSWORD FOCUS_RELEASE_KEY_ALIAS FOCUS_RELEASE_KEY_PASSWORD; do
+            if [ -z "${!variable}" ]; then
+              echo "::error::$variable is required for release tags"
+              exit 1
+            fi
+          done
+          ./gradlew bundleRelease assembleRelease
+
+      - name: Verify Release Signatures
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
+          "$APKSIGNER" verify --verbose app/build/outputs/apk/release/app-release.apk
+          jarsigner -verify app/build/outputs/bundle/release/app-release.aab | tee bundle-signature.txt
+          grep -q 'jar verified' bundle-signature.txt
 
       - name: Name Release Artifacts
         run: |
@@ -92,3 +109,7 @@ jobs:
             focus-launcher-${{ github.ref_name }}-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove Signing Material
+        if: always()
+        run: rm -f release-keystore.jks
